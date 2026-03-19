@@ -13,6 +13,7 @@ from ragbot.prompts.rag_prompt import rag_prompt
 from ragbot.utils.logger import get_logger
 
 from scripts.ingest import DATA_DIR, load_documents
+from ragbot.utils.formatter import format_to_markdown
 
 
 logger = get_logger("rag_pipeline")
@@ -90,6 +91,8 @@ class RAGPipeline:
         logger.info("LLM response generated")
           # Remove newlines
         clean_response = str(response.content).replace('\n', ' ')
+        clean_response = format_to_markdown(clean_response)
+
         return clean_response
         
 

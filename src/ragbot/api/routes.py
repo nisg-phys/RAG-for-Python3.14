@@ -1,7 +1,7 @@
 from typing import Annotated
 from fastapi import APIRouter
 from pydantic import BaseModel, Field
-
+from fastapi.responses import PlainTextResponse
 from ragbot.pipeline.rag_pipeline import RAGPipeline
 from ragbot.utils.logger import get_logger
 
@@ -19,6 +19,10 @@ class QueryRequest(BaseModel):
 
 class QueryResponse(BaseModel):
     answer: str
+
+@router.get("/")
+def hello():
+    return{"message":"RAG Bot that will answer everything about python 3.14 with codes and examples."}
 
 
 @router.post("/query", response_model=QueryResponse)
