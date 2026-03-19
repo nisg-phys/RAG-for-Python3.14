@@ -127,8 +127,6 @@ python-dotenv==1.2.2
 python-multipart==0.0.22
 PyYAML==6.0.3
 questionary==2.1.1
--e git+https://github.com/nisg-phys/rag-bot-pinecone-production@9e1191fbd932b3019fa5e0f4f2d6968d55346630#egg=ragbot
-rank-bm25==0.2.2
 referencing==0.37.0
 regex==2026.2.28
 requests==2.32.5
