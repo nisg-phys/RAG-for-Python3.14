@@ -1,0 +1,45 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>RAG Bot</title>
+  <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+</head>
+<body>
+
+<h2>RAG Bot</h2>
+
+<input id="query" type="text" placeholder="Ask something..." size="50"/>
+<button onclick="ask()">Submit</button>
+
+<hr/>
+
+<div id="response"></div>
+
+<script>
+async function ask() {
+    const query = document.getElementById("query").value;
+
+    try {
+        const res = await fetch("https://rag-bot-pinecone-production.onrender.com/query", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ query })
+        });
+
+        if (!res.ok) {
+            throw new Error("Request failed: " + res.status);
+        }
+
+        const data = await res.json();
+
+        document.getElementById("response").innerHTML =
+            marked.parse(data.answer);
+
+    } catch (err) {
+        document.getElementById("response").innerText =
+            "Error: " + err.message;
+    }
+}
+</script>
+</body>
+</html>

@@ -1,8 +1,8 @@
 import pickle
-from urllib import response
 from pathlib import Path
 from langchain_groq import ChatGroq
 from ragbot.ingestion.s3_storage import download_chunks
+from fastapi.responses import PlainTextResponse
 
 from pydantic import SecretStr
 from ragbot.pipeline.ingestion_pipeline import IngestionPipeline
@@ -87,12 +87,11 @@ class RAGPipeline:
         # Call LLM
         logger.info("Calling LLM with constructed prompt")
         response = self.llm.invoke(prompt)
-
-        logger.info("LLM response generated")
-          # Remove newlines
-        clean_response = str(response.content).replace('\n', ' ')
+        clean_response = str(response.content)
         clean_response = format_to_markdown(clean_response)
 
+        logger.info("LLM response generated")
+        # Remove newlines
         return clean_response
         
 
