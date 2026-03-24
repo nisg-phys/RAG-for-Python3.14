@@ -23,7 +23,13 @@ class IngestionPipeline:
             chunk_overlap=settings.chunk_overlap
         )
     def _make_chunk_id(self, text: str) -> str:
-        return hashlib.sha256(text.encode("utf-8")).hexdigest()    
+        return hashlib.sha256(text.encode("utf-8")).hexdigest()   
+
+    # Adding dataset fingerprint to prevent silent desync again. 
+    
+    def _dataset_hash(self, chunks):
+        combined = "".join([c.page_content for c in chunks])
+        return hashlib.sha256(combined.encode()).hexdigest()
 
     def ingest(self, documents):
         """
@@ -34,9 +40,18 @@ class IngestionPipeline:
 
         chunks = self.text_splitter.split_documents(documents)
 
-        ids = [self._make_chunk_id(c.page_content) for c in chunks]
+        ids = []
+        for c in chunks:
+            cid = self._make_chunk_id(c.page_content)
+            c.metadata["chunk_id"] = cid   # ← ADD THIS
+            ids.append(cid)
 
-        logger.info("Upserting chunks into Pinecone (idempotent)...")
+        # Dataset fingerprint
+        dataset_hash = self._dataset_hash(chunks)
+        for c in chunks:
+            c.metadata["dataset_hash"] = dataset_hash
+
+        logger.info(f"Upserting {len(ids)} chunks into Pinecone (idempotent expected)...")    
 
         self.vectorstore.add_documents(documents=chunks, ids=ids)
         index= self.vectorstore.index

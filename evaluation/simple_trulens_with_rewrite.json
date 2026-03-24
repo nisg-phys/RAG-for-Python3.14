@@ -1,0 +1,52 @@
+[
+  {
+    "query": "What is a Python list?",
+    "answer": "**Explanation**\nA Python list is a built-in sequence data type. It is more akin to an array in other languages than to a linked list since access to elements is O(1). Lists are denoted by square brackets `[]` and can contain an arbitrary number of elements.\n\n**Code**\n```python\n# Creating a list\nmy_list = [1, 2, 3, 4, 5]\n\n# Accessing elements in a list\nprint(my_list[0])  # prints: 1\nprint(my_list[-1])  # prints: 5\n\n# Modifying elements in a list\nmy_list[0] = 10\nprint(my_list)  # prints: [10, 2, 3, 4, 5]\n\n# Adding elements to a list\nmy_list.append(6)\nprint(my_list)  # prints: [10, 2, 3, 4, 5, 6]\n\n# Removing elements from a list\nmy_list.remove(2)\nprint(my_list)  # prints: [10, 3, 4, 5, 6]\n```\n\n**Notes**\n* Lists are mutable, meaning their elements can be modified after creation.\n* Lists can contain duplicate elements.\n* Lists can contain elements of different data types.\n* Lists are indexed, with the first element being at index 0.\n* Lists support various methods for adding, removing, and modifying elements, such as `append()`, `remove()`, and `sort()`.",
+    "answer_relevance": 1.0,
+    "context_relevance": 0.54,
+    "groundedness": 1.0,
+    "num_contexts": 5,
+    "llm_model": "llama-3.1-8b-instant",
+    "embedding_model": "text-embedding-3-small"
+  },
+  {
+    "query": "difference between list and tuple",
+    "answer": "**Explanation**\n\nIn Python, `list` and `tuple` are both sequence types, but they have different characteristics. The main difference between them is that a `list` is mutable, meaning its elements can be modified after creation, while a `tuple` is immutable, meaning its elements cannot be modified.\n\n**Code**\n\n```python\n# Create a list\nmy_list = [1, 2, 3]\n\n# Modify the list\nmy_list[0] = 10\nprint(my_list)  # Output: [10, 2, 3]\n\n# Create a tuple\nmy_tuple = (1, 2, 3)\n\n# Attempt to modify the tuple\ntry:\n    my_tuple[0] = 10\nexcept TypeError as e:\n    print(e)  # Output: 'tuple' object does not support item assignment\n```\n\n**Notes**\n\n* In the code above, we see that the `list` can be modified, but the `tuple` cannot.\n* Lists are generally slower than tuples because they are dynamic, meaning their size can change after creation.\n* Tuples are generally faster than lists because they are static, meaning their size is fixed after creation.\n* When to use lists: when you need to modify the elements after creation, or when you need to add or remove elements.\n* When to use tuples: when you need to create a fixed-size sequence of elements, or when you need to pass a sequence to a function that does not allow modification.",
+    "answer_relevance": 1.0,
+    "context_relevance": 0.26,
+    "groundedness": 0.2,
+    "num_contexts": 5,
+    "llm_model": "llama-3.1-8b-instant",
+    "embedding_model": "text-embedding-3-small"
+  },
+  {
+    "query": "how does garbage collection work in python",
+    "answer": "**Explanation**\nGarbage collection in Python is performed using a combination of reference counting and a cyclic garbage collector. Reference counting is a simple method where each object has a reference count that indicates how many other objects are referencing it. When the reference count reaches zero, the object is deallocated. However, this method is not sufficient for detecting cyclic references, where two or more objects reference each other.\n\nTo address this, Python uses a cyclic garbage collector that identifies and breaks reference cycles. The garbage collector runs periodically, scanning the heap for objects that are no longer referenced and deallocations them.\n\n**Code**\n```python\nimport gc\n\n# Create some objects with references\na = [1, 2, 3]\nb = a\nc = [b]\n\n# Create a cyclic reference\nd = [a, c]\n\n# Delete the references\ndel a\ndel b\ndel c\ndel d\n\n# Run the garbage collector\ngc.collect()\n\n# Check if the objects have been deallocated\nprint(id(a))  # Should raise a NameError\n```\n\n**Notes**\nEdge cases to be aware of:\n\n*   Garbage collection can be triggered manually using the `gc.collect()` function.\n*   The frequency of garbage collection can be adjusted using the `gc.set_debug()` and `gc.set_threshold()` functions.\n*   Garbage collection can be disabled using the `gc.disable()` function, but this is generally not recommended as it can lead to memory leaks.\n*   The cyclic garbage collector can be disabled using the `gc.set_refdebug()` function, but this is generally not recommended as it can lead to reference cycles that prevent objects from being deallocated.",
+    "answer_relevance": 1.0,
+    "context_relevance": 0.64,
+    "groundedness": 0.8,
+    "num_contexts": 5,
+    "llm_model": "llama-3.1-8b-instant",
+    "embedding_model": "text-embedding-3-small"
+  },
+  {
+    "query": "what is a generator in python",
+    "answer": "**Explanation**\n\nA generator in Python is a function that returns a generator iterator. It looks like a normal function except that it contains \"yield\" expressions for producing a series of values usable in a for-loop or that can be retrieved one at a time with the \"next()\" function. When a generator is called, it returns a generator iterator, which remembers the execution state and can be used to resume the generator.\n\n**Code Example**\n```python\ndef my_generator():\n    yield 1\n    yield 2\n    yield 3\n\ngen = my_generator()\nprint(next(gen))  # prints 1\nprint(next(gen))  # prints 2\nprint(next(gen))  # prints 3\n```\n**Notes**\n\n* Generators are useful for creating iterators that can be used to produce a sequence of values on demand.\n* They are more memory-efficient than creating a list or tuple of all values at once.\n* Generators can be used with the \"for\" loop to iterate over a sequence of values.\n* The \"next()\" function can be used to retrieve the next value from a generator.",
+    "answer_relevance": 0.95,
+    "context_relevance": 0.62,
+    "groundedness": 0.8,
+    "num_contexts": 5,
+    "llm_model": "llama-3.1-8b-instant",
+    "embedding_model": "text-embedding-3-small"
+  },
+  {
+    "query": "explain async await in python",
+    "answer": "## Explanation\n\nAsyncio is a library to write single-threaded concurrent code using coroutines, multiplexing I/O access over sockets and other resources, and implementing network clients and servers.\n\nThe `async` and `await` keywords are used to define asynchronous iterators and coroutines. An asynchronous iterator is an object that implements the `__aiter__()` and `__anext__()` methods. The `__aiter__()` method returns an asynchronous iterator object, and the `__anext__()` method returns an awaitable object.\n\nThe `async` keyword is used to define a coroutine, which is a function that can be paused and resumed at specific points. The `await` keyword is used to pause the execution of a coroutine until the awaited expression is resolved.\n\n**Code**\n=======\n\nHere's a simple example of using async and await in Python:\n```python\nimport asyncio\n\nasync def my_coroutine():\n    print(\"Hello\")\n    await asyncio.sleep(1)  # pause execution for 1 second\n    print(\"World\")\n\nasync def main():\n    await my_coroutine()\n\nasyncio.run(main())\n```\nIn this example, `my_coroutine()` is an async function that prints \"Hello\" and then pauses execution for 1 second using `await asyncio.sleep(1)`. After the sleep, it prints \"World\".\n\nThe `main()` function is also an async function that awaits the call to `my_coroutine()`.\n\nThe `asyncio.run(main())` line runs the main coroutine.\n\n**Notes**\n--------\n\n* Async and await are used to write asynchronous code that is easier to read and maintain.\n* The `asyncio` library provides a lot of functionality for working with coroutines and asynchronous iterators.\n* The `await` keyword can be used to pause execution of a coroutine until an awaitable expression is resolved.\n* The `asyncio.sleep()` function is used to pause execution of a coroutine for a specified amount of time.\n* The `asyncio.run()` function is used to run an asynchronous main coroutine.",
+    "answer_relevance": 0.9,
+    "context_relevance": 0.54,
+    "groundedness": 0.0,
+    "num_contexts": 5,
+    "llm_model": "llama-3.1-8b-instant",
+    "embedding_model": "text-embedding-3-small"
+  }
+]

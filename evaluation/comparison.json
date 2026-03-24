@@ -1,0 +1,77 @@
+[
+  {
+    "query": "What is a Python list?",
+    "precision_at_k": {
+      "before": 0.2,
+      "after": 0.2
+    },
+    "coverage": {
+      "before": "FULL",
+      "after": "FULL"
+    },
+    "groundedness": {
+      "before": true,
+      "after": true
+    }
+  },
+  {
+    "query": "difference between list and tuple",
+    "precision_at_k": {
+      "before": 0.2,
+      "after": 0.2
+    },
+    "coverage": {
+      "before": "FULL",
+      "after": "PARTIAL"
+    },
+    "groundedness": {
+      "before": true,
+      "after": true
+    }
+  },
+  {
+    "query": "how does garbage collection work in python",
+    "precision_at_k": {
+      "before": 0.8,
+      "after": 0.6
+    },
+    "coverage": {
+      "before": "FULL",
+      "after": "PARTIAL"
+    },
+    "groundedness": {
+      "before": true,
+      "after": true
+    }
+  },
+  {
+    "query": "what is a generator in python",
+    "precision_at_k": {
+      "before": 0.6,
+      "after": 0.6
+    },
+    "coverage": {
+      "before": "FULL",
+      "after": "FULL"
+    },
+    "groundedness": {
+      "before": true,
+      "after": true
+    }
+  },
+  {
+    "query": "explain async await in python",
+    "precision_at_k": {
+      "before": 0.8,
+      "after": 1.0
+    },
+    "coverage": {
+      "before": "FULL",
+      "after": "PARTIAL"
+    },
+    "groundedness": {
+      "before": true,
+      "after": true
+    }
+  }
+]

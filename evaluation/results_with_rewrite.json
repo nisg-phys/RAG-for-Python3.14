@@ -1,0 +1,42 @@
+[
+  {
+    "query": "What is a Python list?",
+    "precision_at_k": 0.2,
+    "coverage": "FULL",
+    "grounded": true,
+    "groundedness": true,
+    "answer": "**Explanation**\nA Python list is a built-in sequence type that can store multiple values of any data type, including strings, integers, floats, and other lists. Lists are denoted by square brackets `[]` and are ordered, meaning that the elements can be accessed by their index position. Lists are mutable, meaning that their elements can be modified after creation.\n\n**Code Example**\n```python\n# Creating a list\nmy_list = [1, 2, 3, \"hello\", 4.5]\n\n# Accessing elements\nprint(my_list[0])  # prints 1\nprint(my_list[3])  # prints \"hello\"\n\n# Modifying elements\nmy_list[0] = 10\nprint(my_list[0])  # prints 10\n\n# Adding elements\nmy_list.append(6)\nprint(my_list)  # prints [10, 2, 3, \"hello\", 4.5, 6]\n\n# Removing elements\nmy_list.pop(1)\nprint(my_list)  # prints [10, 3, \"hello\", 4.5, 6]\n```\n\n**Notes**\nLists are a fundamental data structure in Python and are widely used in many applications. They are dynamic, meaning that their size can change after creation. However, accessing elements by index can be slow for large lists, as it requires searching for the element."
+  },
+  {
+    "query": "difference between list and tuple",
+    "precision_at_k": 0.2,
+    "coverage": "PARTIAL",
+    "grounded": true,
+    "groundedness": true,
+    "answer": "**Explanation**\nList and tuple are both sequence types in Python, but they have some key differences. The main difference is that lists are mutable, meaning their elements can be changed after they are created, whereas tuples are immutable, meaning their elements cannot be changed after they are created.\n\n**Code**\n```python\n# Create a list and a tuple\nmy_list = [1, 2, 3]\nmy_tuple = (1, 2, 3)\n\n# Try to modify the list and the tuple\ntry:\n    my_list[0] = 10  # This is allowed for lists\n    print(my_list)  # [10, 2, 3]\nexcept TypeError:\n    print(\"Error: Tuples are immutable\")\n\ntry:\n    my_tuple[0] = 10  # This will raise a TypeError\n    print(my_tuple)\nexcept TypeError:\n    print(\"Tuples are immutable\")\n\n# However, we can create a new tuple with the modified value\nmy_tuple = (10, my_tuple[1], my_tuple[2])\nprint(my_tuple)  # (10, 2, 3)\n```\n\n**Notes**\nLists are generally faster and more memory-efficient than tuples, but tuples are more memory-efficient and can be used in some situations where lists cannot, such as in dictionaries and as elements of other collections. In general, if you need to store a collection of values that won't change, a tuple is a good choice, but if you need to modify the collection or add new values, a list is a better choice."
+  },
+  {
+    "query": "how does garbage collection work in python",
+    "precision_at_k": 0.6,
+    "coverage": "PARTIAL",
+    "grounded": true,
+    "groundedness": true,
+    "answer": "**Explanation**\n\nPython performs garbage collection via reference counting and a cyclic garbage collector. Reference counting is a simple mechanism that keeps track of the number of references to an object. When the reference count reaches zero, the object is deallocated. However, this method has a limitation: it does not detect reference cycles, where objects reference each other in a cycle.\n\nTo overcome this limitation, Python uses a cyclic garbage collector. This collector periodically runs in the background and detects reference cycles. When a cycle is detected, the garbage collector marks the cycle as garbage and later collects it when the garbage collector is run.\n\n**Code**\n\n```python\nimport gc\n\n# Create some objects\nobj1 = [1, 2, 3]\nobj2 = [4, 5, 6]\nobj2.append(obj1)\nobj1.append(obj2)\n\n# Create a weak reference to obj1\nimport weakref\nweak_obj1 = weakref.ref(obj1)\n\n# Delete the strong references to obj1\ndel obj1\ndel obj2\n\n# Run the garbage collector\ngc.collect()\n\n# Try to access obj1 through the weak reference\ntry:\n    obj1_ref = weak_obj1()\n    print(obj1_ref)\nexcept ReferenceError:\n    print(\"obj1 has been garbage collected\")\n```\n\n**Notes**\n\n* The garbage collector can be run manually using the `gc.collect()` function.\n* The `gc` module provides several functions to control the garbage collector, including `gc.enable()`, `gc.disable()`, and `gc.get_objects()`.\n* Weak references can be used to detect when an object has been garbage collected. However, be aware that accessing an object through a weak reference can raise a `ReferenceError` if the object has been garbage collected."
+  },
+  {
+    "query": "what is a generator in python",
+    "precision_at_k": 0.6,
+    "coverage": "FULL",
+    "grounded": true,
+    "groundedness": true,
+    "answer": "**Explanation**\nA generator in Python is a special type of function that can be used to generate a sequence of values on-the-fly. It is defined like a normal function, but uses the `yield` keyword to produce a value, suspending execution until the next value is requested. This allows generators to efficiently handle large datasets or infinite sequences.\n\n**Code**\n```python\ndef my_generator():\n    for i in range(5):\n        yield i\n\n# Create a generator iterator\ngen = my_generator()\n\n# Retrieve values from the generator\nprint(next(gen))  # prints: 0\nprint(next(gen))  # prints: 1\nprint(next(gen))  # prints: 2\nprint(next(gen))  # prints: 3\nprint(next(gen))  # prints: 4\n\n# Try to retrieve a value that doesn't exist (will raise StopIteration)\ntry:\n    print(next(gen))\nexcept StopIteration:\n    print(\"Generator exhausted\")\n```\n**Notes**\n- Generators are useful for lazy evaluation, where values are only generated when needed.\n- Generators can be used with the `for` loop, which takes care of calling `next()` for each iteration.\n- Generators can also be used with the `iter()` function to create an iterator object.\n- When a generator is exhausted (i.e., there are no more values to yield), calling `next()` will raise a `StopIteration` exception."
+  },
+  {
+    "query": "explain async await in python",
+    "precision_at_k": 1.0,
+    "coverage": "PARTIAL",
+    "grounded": true,
+    "groundedness": true,
+    "answer": "**Explanation**\n---------------\n\nAsyncio is a library to write single-threaded concurrent code using coroutines, multiplexing I/O access over sockets and other resources, and implementing network clients and servers.\n\nThe `async` and `await` keywords are used to define asynchronous functions. `async` is a keyword used to define an asynchronous function, which means that it can pause and resume execution at specific points, allowing other tasks to run while it's waiting for something to happen.\n\n`await` is used within an asynchronous function to pause its execution until the awaited task is complete. When an asynchronous function is executed, it runs until it encounters an `await` expression, at which point it pauses and returns control to the event loop.\n\n**Code**\n------\n\n```python\nimport asyncio\n\nasync def my_function():\n    print(\"Hello\")\n    await asyncio.sleep(1)  # pause execution for 1 second\n    print(\"World\")\n\nasync def main():\n    await my_function()\n\nasyncio.run(main())\n```\n\nIn this example, the `my_function` function uses `await` to pause execution for 1 second, allowing other tasks to run during that time. The `main` function uses `await` to wait for `my_function` to complete.\n\n**Notes**\n-----\n\n*   The `asyncio.run()` function is used to run the `main` function, which in turn calls `my_function`.\n*   The `await` keyword is used to pause execution and wait for the awaited task to complete.\n*   The `asyncio.sleep()` function is used to pause execution for a specified amount of time.\n*   Asyncio is designed to be used with coroutines, which are functions that can pause and resume execution at specific points."
+  }
+]

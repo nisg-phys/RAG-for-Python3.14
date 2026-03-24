@@ -1,0 +1,52 @@
+[
+  {
+    "query": "What is a Python list?",
+    "answer": "**Explanation**\nA Python list is a built-in sequence type that can store multiple elements. It's more akin to an array in other languages than to a linked list, as access to elements is O(1), meaning it takes constant time.\n\n**Code**\n```python\n# Create a list\nmy_list = [1, 2, 3, \"hello\", 4.5]\n\n# Access elements\nprint(my_list[0])  # prints: 1\nprint(my_list[-1])  # prints: 4.5\n\n# Modify elements\nmy_list[0] = 10\nprint(my_list[0])  # prints: 10\n\n# Append elements\nmy_list.append(20)\nprint(my_list)  # prints: [10, 2, 3, 'hello', 4.5, 20]\n\n# Remove elements\nmy_list.remove(2)\nprint(my_list)  # prints: [10, 3, 'hello', 4.5, 20]\n\n# Use list methods\nmy_list.sort()\nprint(my_list)  # prints: [3, 'hello', 4.5, 10, 20]\n\n# Use list comprehensions\nnumbers = [1, 2, 3, 4, 5]\nsquared_numbers = [x**2 for x in numbers]\nprint(squared_numbers)  # prints: [1, 4, 9, 16, 25]\n```\n\n**Notes**\nLists are dynamic in size, and you can add or remove elements at any time. Lists can also be nested, which means you can have a list as an element of another list. The `in` operator can be used to check if an element is present in a list.",
+    "answer_relevance": 0.95,
+    "context_relevance": 0.66,
+    "groundedness": 1.0,
+    "num_contexts": 5,
+    "llm_model": "llama-3.1-8b-instant",
+    "embedding_model": "text-embedding-3-small"
+  },
+  {
+    "query": "difference between list and tuple",
+    "answer": "**Explanation**\n\nIn Python, `list` and `tuple` are both sequence types that store multiple values. However, they differ in their mutability and how they are used.\n\n*   A `list` is a mutable object, meaning its elements can be changed or added after it's created. It's like a dynamic array in other languages.\n*   A `tuple`, on the other hand, is an immutable object, meaning its elements cannot be changed once it's created. It's like a read-only array in other languages.\n\n**Code**\n\n```python\n# Create a list and a tuple\nmy_list = [1, 2, 3]\nmy_tuple = (1, 2, 3)\n\n# Try to modify the list\nmy_list.append(4)\nprint(my_list)  # Output: [1, 2, 3, 4]\n\n# Try to modify the tuple (this will raise an error)\ntry:\n    my_tuple.append(4)\nexcept AttributeError as e:\n    print(e)  # Output: 'tuple' object has no attribute 'append'\n\n# Use the tuple as a named tuple\nimport sys\n\n# sys.float_info is a named tuple\nprint(sys.float_info[1])  # Output: 1024\nprint(sys.float_info.max_exp)  # Output: 1024\n```\n\n**Notes**\n\n*   Lists are generally more flexible and suitable for dynamic data structures, while tuples are more suitable for constants or data that should not be changed.\n*   Tuples are also more memory-efficient than lists because they are immutable, which means Python can optimize memory usage.\n*   Named tuples, like `sys.float_info`, are a special type of tuple that allows for both indexed and named access to its elements.",
+    "answer_relevance": 1.0,
+    "context_relevance": 0.28,
+    "groundedness": 0.6,
+    "num_contexts": 5,
+    "llm_model": "llama-3.1-8b-instant",
+    "embedding_model": "text-embedding-3-small"
+  },
+  {
+    "query": "how does garbage collection work in python",
+    "answer": "**Explanation:**\n\nGarbage collection in Python is a process of freeing memory when it is not used anymore. Python performs garbage collection via reference counting and a cyclic garbage collector. Reference counting is a simple mechanism where each object has a reference count that indicates the number of references to it. When the reference count reaches zero, the object is deallocated. However, this mechanism has a problem of not being able to detect circular references, where an object references itself or is referenced by another object that references itself.\n\nTo address this issue, Python also uses a cyclic garbage collector. The cyclic garbage collector periodically checks for objects that are not reachable from the roots of the program (i.e., global variables, stack variables, etc.) and marks them as garbage. The garbage collector then recursively traverses the graph of objects to find all objects that are reachable from the roots and marks them as alive. The objects that are not marked as alive are then deallocated.\n\n**Code:**\n\n```python\nimport gc\n\n# Create some objects\na = object()\nb = object()\nc = object()\n\n# Create circular references\na.ref = b\nb.ref = c\nc.ref = a\n\n# Delete the references to a, b, and c\ndel a\ndel b\ndel c\n\n# Run the garbage collector to free the memory\ngc.collect()\n\n# Check if the objects were deallocated\nprint(gc.garbage)  # Should be empty\n```\n\n**Notes:**\n\n* The garbage collector is not enabled by default, and you need to call `gc.collect()` explicitly to run it.\n* The `gc` module provides several functions to control the garbage collector, including `gc.collect()`, `gc.garbage`, and `gc.get_objects()`.\n* The garbage collector can be configured using the `gc.set_debug()` function to enable debugging features.\n* The garbage collector can also be used to detect and report memory leaks in your program.",
+    "answer_relevance": 0.9,
+    "context_relevance": 0.64,
+    "groundedness": 0.8,
+    "num_contexts": 5,
+    "llm_model": "llama-3.1-8b-instant",
+    "embedding_model": "text-embedding-3-small"
+  },
+  {
+    "query": "what is a generator in python",
+    "answer": "**Explanation**\nA generator in Python is a special type of function that can be used to generate a sequence of values on-the-fly, rather than computing them all at once and returning them in a list or other container. It does this by using the `yield` keyword to produce a value, and then suspending its execution until the next value is requested.\n\n**Code**\n```python\ndef infinite_sequence():\n    num = 0\n    while True:\n        yield num\n        num += 1\n\n# Create a generator object\ngen = infinite_sequence()\n\n# Get the first 5 values from the generator\nfor _ in range(5):\n    print(next(gen))\n```\nThis code defines a generator function `infinite_sequence` that generates an infinite sequence of numbers starting from 0. The `while True` loop is used to generate values indefinitely. The `yield` keyword is used to produce a value, and then the execution of the function is suspended until the next `next()` call.\n\n**Notes**\n- Generators are lazy, meaning they only compute the next value when asked for it.\n- Generators can be used to implement infinite sequences, as shown in the example above.\n- Generators can be used with the `for` loop to iterate over the generated values.\n- Generators can also be used with the `next()` function to get the next value directly.",
+    "answer_relevance": 0.95,
+    "context_relevance": 0.62,
+    "groundedness": 0.9,
+    "num_contexts": 5,
+    "llm_model": "llama-3.1-8b-instant",
+    "embedding_model": "text-embedding-3-small"
+  },
+  {
+    "query": "explain async await in python",
+    "answer": "**Explanation**\n\nAsyncio is a library to write single-threaded concurrent code using coroutines, multiplexing I/O access over sockets and other resources, and implementing network clients and servers.\n\nAsync and await are keywords used to define asynchronous functions. The `async` keyword is used to define an asynchronous function, while the `await` keyword is used to suspend the execution of the asynchronous function until the awaited task is completed.\n\nWhen you use `await` inside an `async` function, the execution of the function is paused until the awaited task is completed. This allows other tasks to run in the meantime, improving the efficiency of your code.\n\n**Code**\n\nHere is an example of using async and await in Python:\n```python\nimport asyncio\n\nasync def my_function():\n    print(\"Started\")\n    await asyncio.sleep(1)  # Pause execution for 1 second\n    print(\"Finished\")\n\nasync def main():\n    await my_function()\n\nasyncio.run(main())\n```\nThis code defines an asynchronous function `my_function` that prints \"Started\", pauses for 1 second, and then prints \"Finished\". The `main` function is also asynchronous and calls `my_function`. The `asyncio.run(main())` line runs the `main` function.\n\n**Notes**\n\n*   Async and await are used to write asynchronous code that is easy to read and maintain.\n*   The `await` keyword is used to suspend the execution of an asynchronous function until the awaited task is completed.\n*   The `asyncio.sleep()` function is used to pause the execution of an asynchronous function for a specified amount of time.\n*   The `asyncio.run()` function is used to run an asynchronous function.",
+    "answer_relevance": 0.9,
+    "context_relevance": 0.54,
+    "groundedness": 0.6,
+    "num_contexts": 5,
+    "llm_model": "llama-3.1-8b-instant",
+    "embedding_model": "text-embedding-3-small"
+  }
+]

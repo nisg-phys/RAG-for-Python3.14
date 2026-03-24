@@ -29,7 +29,7 @@ class HybridRetriever:
 
         top_k = np.argsort(scores)[::-1][:k]
 
-        docs = [self.documents[i] for i in top_k]
+        docs = [(self.documents[i], float(scores[i])) for i in top_k]
 
 
         logger.info(f"Keyword search returned {len(docs)} documents")
@@ -40,7 +40,8 @@ class HybridRetriever:
 
     def vector_search(self, query, k=5):
 
-        return self.vectorstore.similarity_search(query, k=k)
+        logger.info("Vector search started")
+        return self.vectorstore.vectorstore.similarity_search_with_score(query, k=k)
 
 
   # Use RRF (Reciprocal Rank Fusion) for proper merging
@@ -48,31 +49,55 @@ class HybridRetriever:
         logger.info(f"Hybrid retrieval started for query: '{query[:50]}...' with k={k}")
     
         # Perform searches
-        vector_docs = self.vector_search(query, k)
-        keyword_docs = self.keyword_search(query, k)
-        logger.info(f"Vector docs: {len(vector_docs)} | Keyword docs: {len(keyword_docs)}")
+        vector_results = self.vector_search(query, k)
+        keyword_results = self.keyword_search(query, k)
+        logger.info(f"Vector docs: {len(vector_results)} | Keyword docs: {len(keyword_results)}")
     
         # Score by rank (RRF)
         logger.debug("Calculating RRF scores")
         scores = {}
-        for rank, doc in enumerate(vector_docs):
-            scores[doc.page_content] = scores.get(doc.page_content, 0) + 1/(rank+60)
+        docs_by_chunk_id = {}
+        vector_scores = {}
+        bm25_scores = {}
+
+        for rank, (doc, vector_score) in enumerate(vector_results):
+            chunk_id = doc.metadata.get("chunk_id", doc.page_content)
+            docs_by_chunk_id[chunk_id] = doc
+            vector_scores[chunk_id] = float(vector_score)
+            scores[chunk_id] = scores.get(chunk_id, 0.0) + 1 / (rank + 60)
             logger.debug(f"Vector rank {rank}: score += {1/(rank+60):.4f}")
     
-        for rank, doc in enumerate(keyword_docs):
-            scores[doc.page_content] = scores.get(doc.page_content, 0) + 1/(rank+60)
+        for rank, (doc, bm25_score) in enumerate(keyword_results):
+            chunk_id = doc.metadata.get("chunk_id", doc.page_content)
+            docs_by_chunk_id[chunk_id] = doc
+            bm25_scores[chunk_id] = float(bm25_score)
+            scores[chunk_id] = scores.get(chunk_id, 0.0) + 1 / (rank + 60)
             logger.debug(f"Keyword rank {rank}: score += {1/(rank+60):.4f}")
     
-    # Merge and deduplicate
-        all_docs = {doc.page_content: doc for doc in vector_docs + keyword_docs}
-        logger.info(f"Total unique documents after merging: {len(all_docs)}")
+        logger.info(f"Total unique documents after merging: {len(docs_by_chunk_id)}")
     
-    # Sort by score
-        sorted_docs = sorted(all_docs.items(), key=lambda x: scores[x[0]], reverse=True)
-        final_docs = [doc for _, doc in sorted_docs[:k]]
+        sorted_chunk_ids = sorted(scores, key=lambda chunk_id: scores[chunk_id], reverse=True)
+        final_results = [
+            {
+                "doc": docs_by_chunk_id[chunk_id],
+                "vector_score": vector_scores.get(chunk_id, 0.0),
+                "bm25_score": bm25_scores.get(chunk_id, 0.0),
+                "rrf_score": scores[chunk_id],
+            }
+            for chunk_id in sorted_chunk_ids[:k]
+        ]
     
-        logger.info(f"Returning top {len(final_docs)} documents")
-        for i, doc in enumerate(final_docs):
-            logger.debug(f"Rank {i+1}: score={scores[doc.page_content]:.4f}, preview={doc.page_content[:100]}")
+        logger.info(f"Returning top {len(final_results)} documents")
+        for i, result in enumerate(final_results, start=1):
+            doc = result["doc"]
+            logger.info(
+                "Rank %s chunk_id=%s rrf_score=%.4f vector_score=%.4f bm25_score=%.4f preview=%s",
+                i,
+                doc.metadata.get("chunk_id", "unknown"),
+                result["rrf_score"],
+                result["vector_score"],
+                result["bm25_score"],
+                doc.page_content[:100],
+            )
     
-        return final_docs
+        return final_results

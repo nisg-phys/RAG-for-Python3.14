@@ -1,0 +1,37 @@
+[
+  {
+    "query": "What is a Python list?",
+    "precision_at_k": 0.4,
+    "coverage": "FULL",
+    "grounded": true,
+    "answer": "**Explanation**\nA Python list is a built-in sequence data type that is more akin to an array in other languages than to a linked list. It provides fast access to elements, with an average time complexity of O(1).\n\n**Code**\n```python\n# Creating a list\nmy_list = [1, 2, 3, 4, 5]\n\n# Accessing elements\nprint(my_list[0])  # Output: 1\nprint(my_list[-1])  # Output: 5\n\n# Modifying elements\nmy_list[0] = 10\nprint(my_list)  # Output: [10, 2, 3, 4, 5]\n\n# Adding elements\nmy_list.append(6)\nprint(my_list)  # Output: [10, 2, 3, 4, 5, 6]\n\n# Removing elements\nmy_list.remove(2)\nprint(my_list)  # Output: [10, 3, 4, 5, 6]\n```\n**Notes**\n- Lists are mutable, meaning they can be modified after creation.\n- Lists can contain elements of any data type, including strings, integers, floats, and other lists.\n- Lists are zero-indexed, meaning the first element is at index 0.\n- The `append()` method adds an element to the end of the list.\n- The `remove()` method removes the first occurrence of a specified element."
+  },
+  {
+    "query": "difference between list and tuple",
+    "precision_at_k": 0.2,
+    "coverage": "FULL",
+    "grounded": true,
+    "answer": "**Explanation**\nIn Python, both list and tuple are sequence types. However, the key difference lies in their mutability. A list is a mutable sequence, meaning its elements can be changed after creation. On the other hand, a tuple is an immutable sequence, meaning its elements cannot be changed after creation.\n\n**Code**\n```python\n# Create a list\nmy_list = [1, 2, 3]\nprint(my_list)  # Output: [1, 2, 3]\n\n# Modify the list\nmy_list[0] = 10\nprint(my_list)  # Output: [10, 2, 3]\n\n# Create a tuple\nmy_tuple = (1, 2, 3)\nprint(my_tuple)  # Output: (1, 2, 3)\n\n# Attempt to modify the tuple (will raise an error)\ntry:\n    my_tuple[0] = 10\nexcept TypeError as e:\n    print(e)  # Output: 'tuple' object does not support item assignment\n```\n\n**Notes**\nWhile lists are mutable, tuples are not. This means that tuples are inherently thread-safe, as they cannot be modified concurrently. However, lists require synchronization if they are shared between threads to avoid race conditions."
+  },
+  {
+    "query": "how does garbage collection work in python",
+    "precision_at_k": 0.6,
+    "coverage": "FULL",
+    "grounded": true,
+    "answer": "**Explanation**\nGarbage collection in Python is a process of freeing memory when it is not used anymore. Python performs garbage collection via reference counting and a cyclic garbage collector. Reference counting is a mechanism that keeps track of the number of references to an object. When the reference count reaches zero, the object is deallocated. However, this approach has a limitation: it cannot handle cyclic references, where two or more objects reference each other.\n\n**Code**\n```python\nimport gc\n\n# Create some objects\na = [1, 2, 3]\nb = [4, 5, 6]\nc = [a, b]\n\n# Create a cyclic reference\na.append(c)\n\n# Print the reference count of object a\nprint(sys.getrefcount(a))\n\n# Delete the references to object a\ndel a\ndel b\ndel c\n\n# Run the garbage collector to free the memory\ngc.collect()\n```\n\n**Notes**\nIn this example, we create a cyclic reference by appending `c` to `a`. The reference count of `a` is then printed, and we delete the references to `a`, `b`, and `c`. Finally, we run the garbage collector using `gc.collect()` to free the memory. Note that the `gc.collect()` function is not necessary in this case, as the garbage collector will run automatically when the reference count of an object reaches zero. However, running `gc.collect()` explicitly can help to debug memory leaks."
+  },
+  {
+    "query": "what is a generator in python",
+    "precision_at_k": 0.6,
+    "coverage": "FULL",
+    "grounded": true,
+    "answer": "**Explanation**\nA generator in Python is a function that returns a generator iterator. It looks like a normal function except that it contains \"yield\" expressions for producing a series of values usable in a for-loop or that can be retrieved one at a time with the \"next()\" function. Each \"yield\" temporarily suspends processing, remembering the execution state (including local variables and pending try-statements). When the generator resumes, it picks up where it left off.\n\n**Code**\n```python\ndef my_generator():\n    for i in range(10):\n        yield i\n\ngen = my_generator()\nfor value in gen:\n    print(value)\n```\n\n**Notes**\nIn this example, `my_generator` is a generator function that uses \"yield\" to produce a series of values from 0 to 9. We can call this generator and iterate over it using a for-loop. The `next()` function can also be used to retrieve the values one at a time. Note that the generator remembers its state and picks up where it left off when it is resumed."
+  },
+  {
+    "query": "explain async await in python",
+    "precision_at_k": 0.8,
+    "coverage": "PARTIAL",
+    "grounded": false,
+    "answer": "**Explanation**\n\nAsyncio is a library to write single-threaded concurrent code using coroutines, multiplexing I/O access over sockets and other resources, and implementing network clients and servers.\n\nAsync/await is a syntax introduced in Python 3.5 to write asynchronous code that's easier to read and write. It allows you to write asynchronous code that looks and feels like synchronous code.\n\nHere's how it works:\n\n- `async` is used to define a coroutine function. A coroutine is a function that can suspend its execution and resume it later.\n- `await` is used to suspend the execution of a coroutine until the awaited expression is resolved.\n\n**Code**\n\n```python\nimport asyncio\n\nasync def main():\n    print(\"Started\")\n    await asyncio.sleep(1)\n    print(\"Sleep finished\")\n    await asyncio.sleep(2)\n    print(\"Second sleep finished\")\n\nasyncio.run(main())\n```\n\nIn this example, the `main` coroutine starts by printing \"Started\". Then it awaits the result of `asyncio.sleep(1)`, which suspends its execution for 1 second. After the sleep, it prints \"Sleep finished\" and awaits the result of `asyncio.sleep(2)`, suspending its execution for another 2 seconds. Finally, it prints \"Second sleep finished\".\n\n**Notes**\n\n- Async/await is not the same as threading or multiprocessing. It's a way to write asynchronous code that looks and feels like synchronous code.\n- Asyncio uses a single thread to run coroutines, which means that you don't have to deal with the GIL (Global Interpreter Lock) that's present in synchronous code.\n- Asyncio is particularly useful when dealing with I/O-bound tasks, such as reading from a file, making a network request, or waiting for user input."
+  }
+]
