@@ -240,22 +240,76 @@
 
 <script>
 const API_URL = "https://rag-bot-pinecone-production.onrender.com/query";
+const RETRY_DELAYS = [3000, 8000, 15000, 30000];
+const REQUEST_TIMEOUT_MS = 20000;
+
+let loading = false;
+let statusMessage = "Enter a Python question to get a retrieval-backed answer from the bot.";
+let result = "";
+let statusTone = "normal";
 
 function sleep(ms) {
     return new Promise(resolve => setTimeout(resolve, ms));
 }
 
-function isRetryableError(error) {
-    const message = String(error && error.message ? error.message : error);
-    return ["502", "503", "504", "Failed to fetch"].some(code => message.includes(code));
+async function fetchWithTimeout(url, options, timeoutMs) {
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), timeoutMs);
+
+    try {
+        return await fetch(url, {
+            ...options,
+            signal: controller.signal
+        });
+    } finally {
+        clearTimeout(timeoutId);
+    }
 }
 
-async function fetchWithRetry(url, options, onRetry) {
+function isRetryableError(error) {
+    if (!error) {
+        return true;
+    }
+
+    if (error.name === "AbortError" || error.name === "TypeError") {
+        return true;
+    }
+
+    const message = String(error && error.message ? error.message : error);
+    return message.startsWith("Request failed:");
+}
+
+function renderUI(statusEl, responseEl) {
+    statusEl.innerText = statusMessage;
+
+    if (statusTone === "loading" || loading) {
+        statusEl.className = "status loading";
+    } else if (statusTone === "warning") {
+        statusEl.className = "status warning";
+    } else {
+        statusEl.className = "status";
+    }
+
+    responseEl.innerHTML = result;
+}
+
+async function fetchWithRetry(url, options, statusEl, responseEl) {
     let lastError;
 
-    for (let attempt = 0; attempt < 2; attempt++) {
+    for (let attempt = 0; attempt <= RETRY_DELAYS.length; attempt++) {
+        if (attempt === 0) {
+            statusMessage = "Starting request...";
+        } else if (attempt === 1) {
+            statusMessage = "Server is waking up (this may take up to 60 seconds)...";
+        } else {
+            statusMessage = "Still waking up... retrying";
+        }
+
+        statusTone = "loading";
+        renderUI(statusEl, responseEl);
+
         try {
-            const res = await fetch(url, options);
+            const res = await fetchWithTimeout(url, options, REQUEST_TIMEOUT_MS);
 
             if (!res.ok) {
                 throw new Error("Request failed: " + res.status);
@@ -265,15 +319,11 @@ async function fetchWithRetry(url, options, onRetry) {
         } catch (error) {
             lastError = error;
 
-            if (attempt === 1 || !isRetryableError(error)) {
+            if (attempt === RETRY_DELAYS.length || !isRetryableError(error)) {
                 throw error;
             }
 
-            if (typeof onRetry === "function") {
-                onRetry(attempt + 1, error);
-            }
-
-            await sleep(2000);
+            await sleep(RETRY_DELAYS[attempt]);
         }
     }
 
@@ -288,15 +338,20 @@ async function ask() {
     const buttonEl = document.getElementById("submit");
 
     if (!query) {
-        statusEl.className = "status warning";
-        statusEl.innerText = "Add a Python question first so the bot knows what to retrieve.";
+        loading = false;
+        statusMessage = "Add a Python question first so the bot knows what to retrieve.";
+        result = "";
+        statusTone = "warning";
+        renderUI(statusEl, responseEl);
         return;
     }
 
+    loading = true;
+    statusMessage = "Starting request...";
+    result = "";
+    statusTone = "loading";
     buttonEl.disabled = true;
-    statusEl.className = "status loading";
-    statusEl.innerText = "Searching the Python docs context and generating an answer. If the service is waking up, the first request can take a little longer.";
-    responseEl.innerHTML = "";
+    renderUI(statusEl, responseEl);
 
     try {
         const res = await fetchWithRetry(
@@ -306,29 +361,23 @@ async function ask() {
                 headers: { "Content-Type": "application/json" },
                 body: JSON.stringify({ query })
             },
-            () => {
-                statusEl.className = "status loading";
-                statusEl.innerText = "The backend is waking up. Retrying automatically in 2 seconds.";
-            }
+            statusEl,
+            responseEl
         );
 
         const data = await res.json();
 
-        responseEl.innerHTML = marked.parse(data.answer);
-        statusEl.className = "status";
-        statusEl.innerText = "Answer ready. Ask a follow-up to explore another Python concept or compare related features.";
-
-    } catch (err) {
-        const isStartupError = isRetryableError(err);
-
-        statusEl.className = "status warning";
-        statusEl.innerText = isStartupError
-            ? "Service is still starting up. Please wait a bit and try again."
-            : "Something went wrong while contacting the bot. Please try again.";
-
-        responseEl.innerHTML = isStartupError
-            ? "<p>The backend may still be waking up after inactivity. The page already retried once for you, so another try in a short moment should work.</p>"
-            : "<p>We could not retrieve an answer right now. Please retry in a moment.</p>";
+        loading = false;
+        statusMessage = "Answer ready. Ask a follow-up to explore another Python concept or compare related features.";
+        result = marked.parse(data.answer);
+        statusTone = "normal";
+        renderUI(statusEl, responseEl);
+    } catch (_err) {
+        loading = false;
+        statusMessage = "Server is taking too long. Please try again.";
+        result = "<p>The bot did not respond within the wake-up window. Please try your question again in a moment.</p>";
+        statusTone = "warning";
+        renderUI(statusEl, responseEl);
     } finally {
         buttonEl.disabled = false;
     }
