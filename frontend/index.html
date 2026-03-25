@@ -239,6 +239,47 @@
 </div>
 
 <script>
+const API_URL = "https://rag-bot-pinecone-production.onrender.com/query";
+
+function sleep(ms) {
+    return new Promise(resolve => setTimeout(resolve, ms));
+}
+
+function isRetryableError(error) {
+    const message = String(error && error.message ? error.message : error);
+    return ["502", "503", "504", "Failed to fetch"].some(code => message.includes(code));
+}
+
+async function fetchWithRetry(url, options, onRetry) {
+    let lastError;
+
+    for (let attempt = 0; attempt < 2; attempt++) {
+        try {
+            const res = await fetch(url, options);
+
+            if (!res.ok) {
+                throw new Error("Request failed: " + res.status);
+            }
+
+            return res;
+        } catch (error) {
+            lastError = error;
+
+            if (attempt === 1 || !isRetryableError(error)) {
+                throw error;
+            }
+
+            if (typeof onRetry === "function") {
+                onRetry(attempt + 1, error);
+            }
+
+            await sleep(2000);
+        }
+    }
+
+    throw lastError;
+}
+
 async function ask() {
     const queryInput = document.getElementById("query");
     const query = queryInput.value.trim();
@@ -258,15 +299,18 @@ async function ask() {
     responseEl.innerHTML = "";
 
     try {
-        const res = await fetch("https://rag-bot-pinecone-production.onrender.com/query", {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ query })
-        });
-
-        if (!res.ok) {
-            throw new Error("Request failed: " + res.status);
-        }
+        const res = await fetchWithRetry(
+            API_URL,
+            {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ query })
+            },
+            () => {
+                statusEl.className = "status loading";
+                statusEl.innerText = "The backend is waking up. Retrying automatically in 2 seconds.";
+            }
+        );
 
         const data = await res.json();
 
@@ -275,16 +319,15 @@ async function ask() {
         statusEl.innerText = "Answer ready. Ask a follow-up to explore another Python concept or compare related features.";
 
     } catch (err) {
-        const message = String(err.message || "");
-        const isStartupError = message.includes("502") || message.includes("503") || message.includes("504") || message.includes("Failed to fetch");
+        const isStartupError = isRetryableError(err);
 
         statusEl.className = "status warning";
         statusEl.innerText = isStartupError
-            ? "Service is starting up, please refresh in 30 seconds."
+            ? "Service is still starting up. Please wait a bit and try again."
             : "Something went wrong while contacting the bot. Please try again.";
 
         responseEl.innerHTML = isStartupError
-            ? "<p>The backend may be waking up after inactivity. Refresh shortly and resend your Python question.</p>"
+            ? "<p>The backend may still be waking up after inactivity. The page already retried once for you, so another try in a short moment should work.</p>"
             : "<p>We could not retrieve an answer right now. Please retry in a moment.</p>";
     } finally {
         buttonEl.disabled = false;
