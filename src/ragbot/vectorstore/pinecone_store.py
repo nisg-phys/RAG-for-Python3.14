@@ -4,6 +4,7 @@ from langchain_pinecone import PineconeVectorStore
 
 from pydantic import SecretStr
 from ragbot.config.settings import settings
+from ragbot.observability.opik_tracing import track
 from ragbot.utils.logger import get_logger
 
 logger = get_logger("pinecone_store")
@@ -34,6 +35,7 @@ class PineconeStore:
             embedding=self.embeddings
         )
 
+    @track(name="vectorstore.add_documents", type="tool", capture_input=False, capture_output=False)
     def add_documents(self, documents, ids=None):  # ← ADD ids PARAMETER
         """
         Add document chunks to the Pinecone index.
@@ -46,6 +48,7 @@ class PineconeStore:
         
         logger.info("Documents successfully stored in Pinecone")
         
+    @track(name="vectorstore.similarity_search", type="tool")
     def similarity_search(self, query: str, k: int ):
         """
         Retrieve most similar documents.
@@ -73,3 +76,19 @@ class PineconeStore:
         self.index.delete(delete_all=True)
 
         logger.info("All vectors deleted")
+
+    @track(name="vectorstore.delete_ids", type="tool")
+    def delete_ids(self, ids: list[str]):
+        """
+        Delete specific vectors by id. Used to drop stale chunks for a
+        document that was edited or removed, without touching the rest of
+        the index. Id-based delete works on both serverless and pod-based
+        Pinecone indexes (unlike metadata-filter delete, which pod-only
+        supports).
+        """
+        if not ids:
+            return
+
+        logger.info(f"Deleting {len(ids)} stale vectors from Pinecone")
+        self.index.delete(ids=ids)
+        logger.info("Stale vectors deleted")

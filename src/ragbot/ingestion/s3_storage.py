@@ -3,6 +3,7 @@ import pickle
 from io import BytesIO
 from botocore.exceptions import ClientError
 from ragbot.config.settings import settings
+from ragbot.observability.opik_tracing import track
 from ragbot.utils.logger import get_logger
 
 logger = get_logger("s3_storage")
@@ -18,6 +19,7 @@ def get_s3_client():
         aws_secret_access_key=settings.aws_secret_access_key,
         region_name=settings.aws_region,
     )
+@track(name="s3.upload_chunks", type="tool", capture_input=False)
 def upload_chunks(chunks):
     """
     Upload chunks to S3 as pickled bytes.
@@ -45,6 +47,7 @@ def upload_chunks(chunks):
     finally:
         buffer.close()
 
+@track(name="s3.download_chunks", type="tool", capture_output=False)
 def download_chunks():
     """
     Download chunks from S3.

@@ -1,3 +1,0 @@
--r requirements.txt
-
-trulens==2.4.1

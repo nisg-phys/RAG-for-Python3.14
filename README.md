@@ -36,28 +36,29 @@ The application ingests local documents from the [`data/`](/Users/nishantgupta/r
 - S3-based chunk persistence for retrieval bootstrap
 - FastAPI API with health and query endpoints
 - Browser-based UI
-- Two evaluation workflows:
-  - a lightweight Groq-judge evaluator
-  - a simplified TruLens-style evaluator
+- Deterministic evaluation with measurable retrieval and answer-quality metrics
 
 ## Architecture Overview
 
 ### Ingestion flow
 
-Documents are loaded from the local [`data/`](/Users/nishantgupta/rag-bot-pinecone/data) directory by [`scripts/ingest.py`](/Users/nishantgupta/rag-bot-pinecone/scripts/ingest.py). The ingestion pipeline:
+Documents are loaded from the local [`data/`](/Users/nishantgupta/rag-bot-pinecone/data) directory, either via [`scripts/ingest.py`](/Users/nishantgupta/rag-bot-pinecone/scripts/ingest.py) (CLI) or the `POST /ingest` endpoint. The ingestion pipeline:
 
 - loads `.txt` and `.pdf` files
-- chunks them with `RecursiveCharacterTextSplitter`
+- hashes each source document's content and compares it to the previously ingested corpus:
+  - **unchanged** sources are skipped entirely - no re-chunking, no re-embedding, no upsert
+  - **new or changed** sources are chunked with `RecursiveCharacterTextSplitter` and (re-)embedded
+  - **changed or removed** sources have their old chunks deleted from Pinecone by id first, so edits and deletions don't leave stale vectors behind
 - assigns deterministic chunk IDs
 - computes a dataset hash for traceability
-- upserts chunks into Pinecone
-- saves chunks to `storage/chunks.pkl`
-- uploads the chunk bundle to S3
+- upserts new/changed chunks into Pinecone
+- saves the full chunk corpus (reused + new) to `storage/chunks.pkl`
+- uploads the full chunk corpus to S3
 
 This logic lives primarily in:
 
-- [`scripts/ingest.py`](/Users/nishantgupta/rag-bot-pinecone/scripts/ingest.py)
-- [`src/ragbot/pipeline/ingestion_pipeline.py`](/Users/nishantgupta/rag-bot-pinecone/src/ragbot/pipeline/ingestion_pipeline.py)
+- [`src/ragbot/services/ingestion_service.py`](/Users/nishantgupta/rag-bot-pinecone/src/ragbot/services/ingestion_service.py) (document loading + orchestration, shared by the CLI and the API)
+- [`src/ragbot/pipeline/ingestion_pipeline.py`](/Users/nishantgupta/rag-bot-pinecone/src/ragbot/pipeline/ingestion_pipeline.py) (change-detection, chunking, upsert/delete)
 - [`src/ragbot/vectorstore/pinecone_store.py`](/Users/nishantgupta/rag-bot-pinecone/src/ragbot/vectorstore/pinecone_store.py)
 - [`src/ragbot/ingestion/s3_storage.py`](/Users/nishantgupta/rag-bot-pinecone/src/ragbot/ingestion/s3_storage.py)
 
@@ -112,7 +113,6 @@ The project is therefore optimized for implementable, documentation-style answer
 - Pinecone
 - BM25 via `rank-bm25`
 - Boto3 for S3 chunk storage
-- TruLens package for simplified evaluation support
 
 ## Project Structure
 
@@ -129,6 +129,7 @@ rag-bot-pinecone/
 │   ├── pipeline/                 # Ingestion and runtime RAG pipelines
 │   ├── prompts/                  # Prompt templates
 │   ├── retrievers/               # Hybrid retrieval and query rewriting
+│   ├── services/                 # Ingestion service backing scripts/ingest.py and /ingest, /index
 │   ├── utils/                    # Logging and formatting helpers
 │   └── vectorstore/              # Pinecone + embeddings wrapper
 ├── storage/                      # Local chunk persistence
@@ -176,6 +177,15 @@ AWS_SECRET_ACCESS_KEY=your_aws_secret_access_key
 AWS_REGION=your_aws_region
 S3_BUCKET=your_s3_bucket
 S3_CHUNKS_KEY=path/to/chunks.pkl
+```
+
+Optional, for Opik tracing (see [Tracing (Opik)](#tracing-opik)):
+
+```env
+OPIK_API_KEY=your_opik_api_key
+OPIK_WORKSPACE=your_opik_workspace
+OPIK_PROJECT_NAME=ragbot
+RAGBOT_ENABLE_OPIK=true
 ```
 
 ### Runtime defaults from settings
@@ -240,6 +250,10 @@ Available endpoints:
   - returns service health status
 - `POST /query`
   - accepts a user question and returns the generated answer
+- `POST /ingest`
+  - loads documents from the local `data/` directory and upserts only the new/changed ones into Pinecone (unchanged documents are skipped; changed or removed documents have their stale vectors deleted); reloads the running retriever afterward so new data is queryable without a restart
+- `DELETE /index`
+  - deletes all vectors from the configured Pinecone index
 
 ### Example query request
 
@@ -339,11 +353,14 @@ The repo currently contains two evaluation approaches.
 
 ### 1. Lightweight evaluation runner
 
-[`scripts/evaluate.py`](/Users/nishantgupta/rag-bot-pinecone/scripts/evaluate.py) uses a Groq model as a judge for:
+[`scripts/evaluate.py`](/Users/nishantgupta/rag-bot-pinecone/scripts/evaluate.py) computes deterministic metrics for:
 
-- retrieval relevance
-- context coverage
-- answer groundedness
+- retrieval hit rate at k
+- mean reciprocal rank at k
+- context precision at k
+- answer keyword recall
+- fallback rate
+- latency summaries
 
 It writes outputs to:
 
@@ -357,34 +374,9 @@ Run it with:
 python scripts/evaluate.py
 ```
 
-### 2. Simplified TruLens-style evaluator
-
-[`scripts/tru_lens_simple_eval.py`](/Users/nishantgupta/rag-bot-pinecone/scripts/tru_lens_simple_eval.py) performs post-hoc scoring for:
-
-- answer relevance
-- context relevance
-- groundedness
-
-It also compares:
-
-- baseline retrieval
-- retrieval with query rewriting
-
-Outputs are written to:
-
-- [`evaluation/simple_trulens_no_rewrite.json`](/Users/nishantgupta/rag-bot-pinecone/evaluation/simple_trulens_no_rewrite.json)
-- [`evaluation/simple_trulens_with_rewrite.json`](/Users/nishantgupta/rag-bot-pinecone/evaluation/simple_trulens_with_rewrite.json)
-- [`evaluation/simple_trulens_comparison.json`](/Users/nishantgupta/rag-bot-pinecone/evaluation/simple_trulens_comparison.json)
-
-Run it with:
-
-```bash
-python scripts/tru_lens_simple_eval.py
-```
-
 ### Evaluation query set
 
-Both evaluation flows rely on:
+The evaluation flow relies on:
 
 - [`evaluation/queries.json`](/Users/nishantgupta/rag-bot-pinecone/evaluation/queries.json)
 
@@ -422,6 +414,24 @@ Logging is handled through [`src/ragbot/utils/logger.py`](/Users/nishantgupta/ra
 
 The package metadata is defined in [`setup.py`](/Users/nishantgupta/rag-bot-pinecone/setup.py). The package name is `ragbot`.
 
+### Tracing (Opik)
+
+[Opik](https://www.comet.com/docs/opik/) tracing is wired through [`src/ragbot/observability/opik_tracing.py`](/Users/nishantgupta/rag-bot-pinecone/src/ragbot/observability/opik_tracing.py), which exposes:
+
+- `track` - a drop-in replacement for `@opik.track` that becomes a true no-op when `RAGBOT_ENABLE_OPIK=false`
+- `get_langchain_tracer` - builds an `OpikTracer` LangChain callback (returns `None` when tracing is disabled)
+- `update_trace_metadata` - safely attaches metadata/tags to the current trace; never raises, even with no active trace
+
+Instrumented today:
+
+- `IngestionPipeline.ingest` (root trace, tagged `ingestion`, annotated with the same `IngestionMetrics` that get logged locally)
+- `PineconeStore.add_documents` / `similarity_search`, and the S3 `upload_chunks` / `download_chunks` helpers, as nested tool spans
+- `RAGPipeline.run` (root trace, tagged `rag_query`, annotated with `QueryTelemetry` and the app's own `trace_id`) and `_retrieve_documents`
+- `HybridRetriever.retrieve` / `vector_search` / `keyword_search`, and `QueryRewriter.rewrite`, as nested tool/llm spans
+- both LLM calls (main generation and query rewriting) via an `OpikTracer` LangChain callback, giving token/cost/latency detail per call
+
+Tracing is designed to fail open: with `OPIK_API_KEY` unset, Opik logs a warning and traces simply don't go anywhere - it will not raise or add meaningful latency to a request. Set `RAGBOT_ENABLE_OPIK=false` to disable instrumentation entirely (e.g. in tests or before Opik credentials are configured).
+
 ## Example End-to-End Workflow
 
 ### Step 1. Add your source documents
@@ -456,7 +466,6 @@ Use either:
 
 ```bash
 python scripts/evaluate.py
-python scripts/tru_lens_simple_eval.py
 ```
 
 ## Troubleshooting

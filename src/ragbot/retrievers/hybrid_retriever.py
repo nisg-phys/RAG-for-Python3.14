@@ -1,5 +1,10 @@
+import re
+
 from rank_bm25 import BM25Okapi
 import numpy as np
+
+from ragbot.config.settings import settings
+from ragbot.observability.opik_tracing import track
 from ragbot.utils.logger import get_logger
 
 logger = get_logger("hybrid_retriever")
@@ -17,8 +22,10 @@ class HybridRetriever:
         tokenized_docs = [doc.page_content.split() for doc in documents]
 
         self.bm25 = BM25Okapi(tokenized_docs)
+        self.token_pattern = re.compile(r"[a-zA-Z0-9_]+")
 
 
+    @track(name="retriever.keyword_search", type="tool")
     def keyword_search(self, query, k=5):
 
         logger.info(f"Keyword search started")
@@ -38,19 +45,65 @@ class HybridRetriever:
         return docs
 
 
+    @track(name="retriever.vector_search", type="tool")
     def vector_search(self, query, k=5):
 
         logger.info("Vector search started")
         return self.vectorstore.vectorstore.similarity_search_with_score(query, k=k)
 
+    def _query_tokens(self, query):
+        return {
+            token for token in self.token_pattern.findall(query.lower())
+            if len(token) > 2
+        }
+
+    def _lexical_overlap_score(self, query_tokens, text):
+        if not query_tokens:
+            return 0.0
+
+        doc_tokens = set(self.token_pattern.findall(text.lower()))
+        overlap = len(query_tokens & doc_tokens)
+        return overlap / len(query_tokens)
+
+    def _rerank_results(self, query, results, k):
+        query_tokens = self._query_tokens(query)
+        if not results:
+            return results
+
+        reranked = []
+        for result in results:
+            lexical_overlap = self._lexical_overlap_score(
+                query_tokens,
+                result["doc"].page_content,
+            )
+            # Keep reranking as a light precision-oriented adjustment instead of a dominant score.
+            rerank_score = (result["rrf_score"] * 0.9) + (lexical_overlap * 0.1)
+            enriched_result = dict(result)
+            enriched_result["lexical_overlap"] = round(lexical_overlap, 4)
+            enriched_result["rerank_score"] = round(rerank_score, 4)
+            reranked.append(enriched_result)
+
+        reranked.sort(
+            key=lambda result: (
+                result["rerank_score"],
+                result["rrf_score"],
+                result["lexical_overlap"],
+                result["bm25_score"],
+            ),
+            reverse=True,
+        )
+        logger.info("Reranked %s candidates down to top %s results", len(reranked), k)
+        return reranked[:k]
 
   # Use RRF (Reciprocal Rank Fusion) for proper merging
+    @track(name="retriever.hybrid_retrieve", type="tool")
     def retrieve(self, query, k=5):
         logger.info(f"Hybrid retrieval started for query: '{query[:50]}...' with k={k}")
+        candidate_k = max(k, settings.retrieval_candidate_pool)
     
         # Perform searches
-        vector_results = self.vector_search(query, k)
-        keyword_results = self.keyword_search(query, k)
+        vector_results = self.vector_search(query, candidate_k)
+        keyword_results = self.keyword_search(query, candidate_k)
         logger.info(f"Vector docs: {len(vector_results)} | Keyword docs: {len(keyword_results)}")
     
         # Score by rank (RRF)
@@ -77,23 +130,26 @@ class HybridRetriever:
         logger.info(f"Total unique documents after merging: {len(docs_by_chunk_id)}")
     
         sorted_chunk_ids = sorted(scores, key=lambda chunk_id: scores[chunk_id], reverse=True)
-        final_results = [
+        merged_results = [
             {
                 "doc": docs_by_chunk_id[chunk_id],
                 "vector_score": vector_scores.get(chunk_id, 0.0),
                 "bm25_score": bm25_scores.get(chunk_id, 0.0),
                 "rrf_score": scores[chunk_id],
             }
-            for chunk_id in sorted_chunk_ids[:k]
+            for chunk_id in sorted_chunk_ids[:candidate_k]
         ]
+        final_results = self._rerank_results(query, merged_results, k)
     
         logger.info(f"Returning top {len(final_results)} documents")
         for i, result in enumerate(final_results, start=1):
             doc = result["doc"]
             logger.info(
-                "Rank %s chunk_id=%s rrf_score=%.4f vector_score=%.4f bm25_score=%.4f preview=%s",
+                "Rank %s chunk_id=%s rerank_score=%.4f lexical_overlap=%.4f rrf_score=%.4f vector_score=%.4f bm25_score=%.4f preview=%s",
                 i,
                 doc.metadata.get("chunk_id", "unknown"),
+                result.get("rerank_score", 0.0),
+                result.get("lexical_overlap", 0.0),
                 result["rrf_score"],
                 result["vector_score"],
                 result["bm25_score"],

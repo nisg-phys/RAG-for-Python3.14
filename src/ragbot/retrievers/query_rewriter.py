@@ -1,5 +1,6 @@
 import ast
 
+from ragbot.observability.opik_tracing import track
 from ragbot.utils.logger import get_logger
 
 
@@ -7,9 +8,11 @@ logger = get_logger("query_rewriter")
 
 
 class QueryRewriter:
-    def __init__(self, llm):
+    def __init__(self, llm, opik_tracer=None):
         self.llm = llm
+        self.opik_tracer = opik_tracer
 
+    @track(name="retriever.query_rewrite", type="llm")
     def rewrite(self, query: str) -> list[str]:
         prompt = f"""
 You rewrite Python documentation search queries for retrieval.
@@ -28,7 +31,8 @@ Query:
 """.strip()
 
         try:
-            response = self.llm.invoke(prompt)
+            llm_config = {"callbacks": [self.opik_tracer]} if self.opik_tracer else {}
+            response = self.llm.invoke(prompt, config=llm_config)
             content = str(getattr(response, "content", response)).strip()
             parsed = ast.literal_eval(content)
 
