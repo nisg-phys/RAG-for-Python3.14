@@ -557,11 +557,12 @@ If you want to adapt it to another domain, the main places to update are:
 - return retrieved sources in the API response
 - add source citations in generated answers
 - add metadata filters for retrieval
-- improve frontend integration and deployment setup
-- add Docker support
 - add Makefile or task runner commands
 - split configuration by environment
 - add structured observability for retrieval metrics
+- use Redis to cache the built BM25 index (not just raw chunks) to reduce cold-start latency
+- improve answer formatting — drop the "Evidence" section from generated answers
+- set up GitHub-based deployment (Cloud Build trigger on push) instead of manual `gcloud run deploy --source .`
 
 ## License
 

@@ -47,14 +47,19 @@ class RAGPipeline:
         chunks = download_chunks()
 
         if chunks is None:
-            raise RuntimeError("Chunks not found in S3. Run ingestion first.")
-        self.documents= chunks
-        logger.info(f"Loaded {len(chunks)} chunks for hybrid retrieval")
-        
-        self.retriever = HybridRetriever(
-            self.vectorstore,
-            self.documents
-        )
+            logger.warning(
+                "No chunks found in S3 yet; starting without a retriever. "
+                "Call POST /ingest to populate the index before querying."
+            )
+            self.documents = []
+            self.retriever = None
+        else:
+            self.documents = chunks
+            logger.info(f"Loaded {len(chunks)} chunks for hybrid retrieval")
+            self.retriever = HybridRetriever(
+                self.vectorstore,
+                self.documents
+            )
 
         self.llm = self._build_llm()
 
@@ -139,6 +144,9 @@ class RAGPipeline:
 
     @track(name="rag.retrieve_documents", type="tool")
     def _retrieve_documents(self, query: str, top_k=5):
+        if self.retriever is None:
+            raise RuntimeError("No documents ingested yet. Call POST /ingest first.")
+
         if not self.use_query_rewriting:
             return self.retriever.retrieve(query, k=top_k)
 

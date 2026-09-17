@@ -10,14 +10,16 @@ logger = get_logger("s3_storage")
 
 def get_s3_client():
     """
-    Create S3 client using AWS credential chain.
-    Prefers IAM roles, then env vars, then ~/.aws/credentials
+    Create an S3-compatible client. Works against AWS S3 or any S3-compatible
+    provider (e.g. Backblaze B2, Cloudflare R2) by pointing S3_ENDPOINT_URL
+    at that provider's endpoint; leave it unset to use AWS's default.
     """
     return boto3.client(
         "s3",
         aws_access_key_id=settings.aws_access_key_id,
         aws_secret_access_key=settings.aws_secret_access_key,
         region_name=settings.aws_region,
+        endpoint_url=settings.s3_endpoint_url,
     )
 @track(name="s3.upload_chunks", type="tool", capture_input=False)
 def upload_chunks(chunks):
