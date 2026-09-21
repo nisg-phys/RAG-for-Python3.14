@@ -432,6 +432,15 @@ Instrumented today:
 
 Tracing is designed to fail open: with `OPIK_API_KEY` unset, Opik logs a warning and traces simply don't go anywhere - it will not raise or add meaningful latency to a request. Set `RAGBOT_ENABLE_OPIK=false` to disable instrumentation entirely (e.g. in tests or before Opik credentials are configured).
 
+## Deployment
+
+Deploys to Cloud Run (`ragbot`, project `ragbag-508901`, region `us-central1`) run through [`cloudbuild.yaml`](cloudbuild.yaml) via a Cloud Build trigger on push to `main` — no more manual `gcloud run deploy --source .`.
+
+- The build steps: build the Docker image, push it to Artifact Registry, then `gcloud run deploy` with that image.
+- Credentials (OpenAI, Pinecone, Groq, AWS, Opik keys) are pulled from **Secret Manager** at deploy time via `--update-secrets`, not committed anywhere — this repo is public, so nothing in `cloudbuild.yaml` is sensitive. Non-secret runtime config (bucket names, region, index name, etc.) is set directly via `--set-env-vars` in the same file.
+- To rotate a credential: `gcloud secrets versions add <SECRET_NAME> --project=ragbag-508901 --data-file=-`, then push (or manually re-trigger the build) so Cloud Run picks up `:latest`.
+- One-time setup already done: the six secrets exist in Secret Manager with the Cloud Run runtime service account (`521740466585-compute@developer.gserviceaccount.com`) granted `roles/secretmanager.secretAccessor` on each.
+
 ## Example End-to-End Workflow
 
 ### Step 1. Add your source documents
@@ -562,7 +571,6 @@ If you want to adapt it to another domain, the main places to update are:
 - add structured observability for retrieval metrics
 - use Redis to cache the built BM25 index (not just raw chunks) to reduce cold-start latency
 - improve answer formatting — drop the "Evidence" section from generated answers
-- set up GitHub-based deployment (Cloud Build trigger on push) instead of manual `gcloud run deploy --source .`
 
 ## License
 

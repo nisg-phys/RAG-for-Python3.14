@@ -1,0 +1,40 @@
+substitutions:
+  _REGION: us-central1
+  _SERVICE: ragbot
+  _REPOSITORY: cloud-run-source-deploy
+
+steps:
+  - id: build
+    name: gcr.io/cloud-builders/docker
+    args:
+      - build
+      - -t
+      - ${_REGION}-docker.pkg.dev/$PROJECT_ID/${_REPOSITORY}/${_SERVICE}:$COMMIT_SHA
+      - .
+
+  - id: push
+    name: gcr.io/cloud-builders/docker
+    args:
+      - push
+      - ${_REGION}-docker.pkg.dev/$PROJECT_ID/${_REPOSITORY}/${_SERVICE}:$COMMIT_SHA
+
+  - id: deploy
+    name: gcr.io/google-cloud-sdk/slim
+    entrypoint: gcloud
+    args:
+      - run
+      - deploy
+      - ${_SERVICE}
+      - --image=${_REGION}-docker.pkg.dev/$PROJECT_ID/${_REPOSITORY}/${_SERVICE}:$COMMIT_SHA
+      - --region=${_REGION}
+      - --platform=managed
+      # Non-secret runtime config, safe to keep in this committed file.
+      - --set-env-vars=S3_BUCKET=ragbot-chunks-nisg,S3_CHUNKS_KEY=storage/chunks.pkl,AWS_REGION=us-east-005,S3_ENDPOINT_URL=https://s3.us-east-005.backblazeb2.com,PINECONE_ENVIRONMENT=us-east-1,PINECONE_INDEX_NAME=ragbot-index,OPIK_WORKSPACE=agentic-ai,OPIK_PROJECT_NAME=ragbot-python
+      # Credentials pulled from Secret Manager at deploy time - never committed.
+      - --update-secrets=OPENAI_API_KEY=OPENAI_API_KEY:latest,PINECONE_API_KEY=PINECONE_API_KEY:latest,GROQ_API_KEY=GROQ_API_KEY:latest,AWS_ACCESS_KEY_ID=AWS_ACCESS_KEY_ID:latest,AWS_SECRET_ACCESS_KEY=AWS_SECRET_ACCESS_KEY:latest,OPIK_API_KEY=OPIK_API_KEY:latest
+
+images:
+  - ${_REGION}-docker.pkg.dev/$PROJECT_ID/${_REPOSITORY}/${_SERVICE}:$COMMIT_SHA
+
+options:
+  logging: CLOUD_LOGGING_ONLY
