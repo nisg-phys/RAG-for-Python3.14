@@ -420,6 +420,16 @@ Logging is handled through [`src/ragbot/utils/logger.py`](/Users/nishantgupta/ra
 
 The package metadata is defined in [`setup.py`](/Users/nishantgupta/rag-bot-pinecone/setup.py). The package name is `ragbot`.
 
+### Testing
+
+Automated tests live under [`tests/`](tests/) and run with `pytest`. They're hermetic `unittest` suites — no network calls, no API keys beyond what importing `ragbot.config.settings` already needs from `.env` — achieved by bypassing `__init__` on classes that build real Pinecone/LLM/S3 clients (`Class.__new__(Class)`) and injecting fakes for just the collaborators each test needs, or faking a module out via `sys.modules` before importing something that instantiates one at import time (see `tests/test_api_routes.py`).
+
+```bash
+pytest tests/
+```
+
+Covers: hybrid retrieval reranking, recursive document loading, evaluation metrics, Opik tracing's fail-open behavior, observability aggregation, answer/section Markdown normalization, source-to-docs-URL citation mapping, the ingestion pipeline's new/changed/unchanged/removed source diffing, the RAG pipeline's result merging and citation building, and the `/query`/`/health` API contract.
+
 ### Tracing (Opik)
 
 [Opik](https://www.comet.com/docs/opik/) tracing is wired through [`src/ragbot/observability/opik_tracing.py`](/Users/nishantgupta/rag-bot-pinecone/src/ragbot/observability/opik_tracing.py), which exposes:
@@ -568,9 +578,6 @@ If you want to adapt it to another domain, the main places to update are:
 
 ## Suggested Next Improvements
 
-- add proper automated tests with assertions instead of one-off scripts
-- return retrieved sources in the API response
-- add source citations in generated answers
 - add metadata filters for retrieval
 - add Makefile or task runner commands
 - split configuration by environment
