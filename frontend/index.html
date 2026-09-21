@@ -1,250 +1,336 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
-  <title>RAG Bot</title>
-  <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
-  <style>
-    :root {
-      --bg: linear-gradient(135deg, #f5f1e8 0%, #dcebf2 100%);
-      --panel: rgba(255, 255, 255, 0.88);
-      --panel-border: rgba(19, 52, 59, 0.12);
-      --text: #163238;
-      --muted: #5c7479;
-      --accent: #0d7a6f;
-      --accent-dark: #0a5c54;
-      --warning-bg: #fff4da;
-      --warning-border: #f0c36d;
-      --shadow: 0 20px 50px rgba(22, 50, 56, 0.14);
-    }
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>RAG Bot</title>
+<script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+<style>
+  :root {
+    --bg-a: #eef2f7;
+    --bg-b: #e4ecf5;
+    --ink: #10192b;
+    --muted: #5b6b82;
+    --panel: rgba(255, 255, 255, 0.86);
+    --panel-border: rgba(16, 25, 43, 0.08);
+    --blue: #306998;
+    --blue-dark: #21496c;
+    --gold: #ffd43b;
+    --warning-bg: #fff6dd;
+    --warning-border: #f0c452;
+    --code-bg: #0f1a2b;
+    --code-text: #d6e4f0;
+    --shadow: 0 24px 60px rgba(16, 25, 43, 0.12);
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Inter, Roboto, Helvetica, Arial, sans-serif;
+  }
 
-    * {
-      box-sizing: border-box;
-    }
+  * {
+    box-sizing: border-box;
+  }
 
-    body {
-      margin: 0;
-      min-height: 100vh;
-      font-family: Georgia, "Times New Roman", serif;
-      background: var(--bg);
-      color: var(--text);
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      padding: 32px 20px;
-    }
+  body {
+    margin: 0;
+    min-height: 100vh;
+    background:
+      radial-gradient(circle at 12% -10%, rgba(48, 105, 152, 0.14), transparent 40%),
+      radial-gradient(circle at 100% 0%, rgba(255, 212, 59, 0.14), transparent 35%),
+      linear-gradient(160deg, var(--bg-a), var(--bg-b));
+    color: var(--ink);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 40px 20px;
+  }
 
-    .shell {
-      width: min(900px, 100%);
-      background: var(--panel);
-      border: 1px solid var(--panel-border);
-      border-radius: 24px;
-      box-shadow: var(--shadow);
-      overflow: hidden;
-      backdrop-filter: blur(10px);
-    }
+  .shell {
+    width: min(620px, 100%);
+    background: var(--panel);
+    border: 1px solid var(--panel-border);
+    border-radius: 22px;
+    box-shadow: var(--shadow);
+    overflow: hidden;
+    backdrop-filter: blur(12px);
+  }
 
-    .hero {
-      padding: 36px 36px 20px;
-      background:
-        radial-gradient(circle at top right, rgba(13, 122, 111, 0.18), transparent 32%),
-        radial-gradient(circle at bottom left, rgba(51, 121, 140, 0.14), transparent 28%);
-    }
+  .header {
+    padding: 40px 36px 4px;
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    gap: 16px;
+    flex-wrap: wrap;
+  }
 
-    .eyebrow {
-      margin: 0 0 10px;
-      font-size: 12px;
-      font-weight: 700;
-      letter-spacing: 0.18em;
-      text-transform: uppercase;
-      color: var(--accent-dark);
-    }
+  h1 {
+    margin: 0;
+    font-size: clamp(1.6rem, 3.6vw, 2.2rem);
+    line-height: 1.2;
+    letter-spacing: -0.02em;
+    font-weight: 800;
+  }
 
-    h1 {
-      margin: 0;
-      font-size: clamp(2rem, 5vw, 3.2rem);
-      line-height: 1.05;
-    }
+  .brand-mark {
+    font-family: "SFMono-Regular", Menlo, Consolas, monospace;
+    font-weight: 600;
+    font-size: 0.75em;
+    letter-spacing: 0.02em;
+    color: var(--blue);
+    margin-right: 2px;
+  }
 
-    .subtitle {
-      margin: 14px 0 0;
-      max-width: 700px;
-      color: var(--muted);
-      font-size: 1.05rem;
-      line-height: 1.6;
-    }
+  .brand-text {
+    background: linear-gradient(135deg, var(--ink) 20%, var(--blue-dark) 100%);
+    -webkit-background-clip: text;
+    background-clip: text;
+    color: transparent;
+  }
 
-    .feature-list {
-      display: grid;
-      grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
-      gap: 12px;
-      margin: 24px 0 0;
-      padding: 0;
-      list-style: none;
-    }
+  .cursor {
+    display: inline-block;
+    width: 3px;
+    height: 0.85em;
+    margin-left: 3px;
+    background: var(--blue);
+    vertical-align: -0.05em;
+    animation: blink 1.1s steps(1) infinite;
+  }
 
-    .feature-list li {
-      padding: 14px 16px;
-      border-radius: 16px;
-      background: rgba(255, 255, 255, 0.72);
-      border: 1px solid rgba(13, 122, 111, 0.12);
-      color: var(--text);
-      font-size: 0.96rem;
-      line-height: 1.45;
-    }
+  @keyframes blink {
+    50% { opacity: 0; }
+  }
 
-    .workspace {
-      padding: 0 36px 36px;
+  .quote {
+    margin: 4px 0 0;
+    color: var(--muted);
+    font-size: 0.92rem;
+    font-style: italic;
+  }
+
+  .workspace {
+    padding: 28px 36px 36px;
+  }
+
+  .composer {
+    display: grid;
+    grid-template-columns: 1fr auto;
+    gap: 12px;
+  }
+
+  input {
+    width: 100%;
+    padding: 14px 16px;
+    border-radius: 13px;
+    border: 1px solid rgba(16, 25, 43, 0.14);
+    font: inherit;
+    font-size: 0.98rem;
+    color: var(--ink);
+    background: rgba(255, 255, 255, 0.95);
+    transition: border-color 140ms ease, box-shadow 140ms ease;
+  }
+
+  input:focus {
+    outline: none;
+    border-color: var(--blue);
+    box-shadow: 0 0 0 3px rgba(48, 105, 152, 0.14);
+  }
+
+  button {
+    border: 0;
+    border-radius: 13px;
+    padding: 0 22px;
+    min-height: 50px;
+    font: inherit;
+    font-weight: 700;
+    font-size: 0.94rem;
+    color: #fff;
+    background: linear-gradient(135deg, var(--blue) 0%, var(--blue-dark) 100%);
+    cursor: pointer;
+    transition: transform 140ms ease, box-shadow 140ms ease, opacity 140ms ease;
+    box-shadow: 0 12px 26px rgba(33, 73, 108, 0.24);
+  }
+
+  button:hover:not(:disabled) {
+    transform: translateY(-1px);
+    box-shadow: 0 14px 30px rgba(33, 73, 108, 0.3);
+  }
+
+  button:disabled {
+    cursor: wait;
+    opacity: 0.7;
+    transform: none;
+  }
+
+  .status {
+    margin-top: 16px;
+    padding: 13px 16px;
+    border-radius: 14px;
+    background: rgba(255, 255, 255, 0.65);
+    border: 1px solid rgba(16, 25, 43, 0.08);
+    color: var(--muted);
+    font-size: 0.9rem;
+    min-height: 20px;
+    line-height: 1.5;
+  }
+
+  .status.loading {
+    color: var(--blue-dark);
+    border-color: rgba(48, 105, 152, 0.2);
+  }
+
+  .status.warning {
+    background: var(--warning-bg);
+    border-color: var(--warning-border);
+    color: #6f4b00;
+  }
+
+  .response {
+    margin-top: 16px;
+    padding: 22px 24px;
+    border-radius: 16px;
+    background: rgba(255, 255, 255, 0.78);
+    border: 1px solid rgba(16, 25, 43, 0.08);
+    min-height: 140px;
+    line-height: 1.7;
+    font-size: 0.96rem;
+    animation: fadeIn 220ms ease;
+  }
+
+  .response:empty::before {
+    content: "Ask a question to see an answer here.";
+    color: var(--muted);
+  }
+
+  .response p:first-child {
+    margin-top: 0;
+  }
+
+  .response pre {
+    overflow-x: auto;
+    padding: 16px;
+    border-radius: 12px;
+    background: var(--code-bg);
+    color: var(--code-text);
+  }
+
+  .response code {
+    font-family: "SFMono-Regular", Menlo, Consolas, monospace;
+    font-size: 0.88em;
+  }
+
+  .response :not(pre) > code {
+    background: rgba(48, 105, 152, 0.1);
+    color: var(--blue-dark);
+    padding: 2px 6px;
+    border-radius: 6px;
+  }
+
+  .response h2 {
+    margin: 20px 0 8px;
+    font-size: 0.82rem;
+    font-weight: 700;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    color: var(--blue-dark);
+  }
+
+  .response h2:first-child {
+    margin-top: 0;
+  }
+
+  .response ul, .response ol {
+    margin: 6px 0;
+    padding-left: 22px;
+  }
+
+  .response li {
+    margin: 4px 0;
+  }
+
+  .response li::marker {
+    color: var(--blue);
+  }
+
+  .response .sources {
+    margin-top: 20px;
+    padding-top: 14px;
+    border-top: 1px solid var(--panel-border);
+  }
+
+  .response .sources strong {
+    display: block;
+    margin-bottom: 6px;
+    font-size: 0.78rem;
+    font-weight: 700;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    color: var(--muted);
+  }
+
+  .response .sources ul {
+    margin: 0;
+    padding-left: 0;
+    list-style: none;
+  }
+
+  .response .sources li {
+    margin: 4px 0;
+    padding: 4px 10px;
+    display: inline-block;
+    margin-right: 8px;
+    font-size: 0.82rem;
+    font-family: "SFMono-Regular", Menlo, Consolas, monospace;
+    color: var(--blue-dark);
+    background: rgba(48, 105, 152, 0.08);
+    border-radius: 6px;
+  }
+
+  @keyframes fadeIn {
+    from { opacity: 0; transform: translateY(4px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+
+  @media (max-width: 640px) {
+    .header, .workspace {
+      padding-left: 22px;
+      padding-right: 22px;
     }
 
     .composer {
-      display: grid;
-      grid-template-columns: 1fr auto;
-      gap: 12px;
-      margin-top: 8px;
-    }
-
-    input {
-      width: 100%;
-      padding: 15px 16px;
-      border-radius: 14px;
-      border: 1px solid rgba(22, 50, 56, 0.16);
-      font: inherit;
-      font-size: 1rem;
-      color: var(--text);
-      background: rgba(255, 255, 255, 0.92);
-    }
-
-    input:focus {
-      outline: 2px solid rgba(13, 122, 111, 0.22);
-      border-color: rgba(13, 122, 111, 0.3);
+      grid-template-columns: 1fr;
     }
 
     button {
-      border: 0;
-      border-radius: 14px;
-      padding: 0 20px;
-      min-height: 52px;
-      font: inherit;
-      font-weight: 700;
-      color: #fff;
-      background: linear-gradient(135deg, var(--accent) 0%, #11689a 100%);
-      cursor: pointer;
-      transition: transform 140ms ease, box-shadow 140ms ease, opacity 140ms ease;
-      box-shadow: 0 12px 25px rgba(17, 104, 154, 0.2);
+      width: 100%;
     }
-
-    button:hover {
-      transform: translateY(-1px);
-    }
-
-    button:disabled {
-      cursor: wait;
-      opacity: 0.75;
-      transform: none;
-    }
-
-    .status {
-      margin-top: 18px;
-      padding: 14px 16px;
-      border-radius: 16px;
-      background: rgba(255, 255, 255, 0.72);
-      border: 1px solid rgba(22, 50, 56, 0.08);
-      color: var(--muted);
-      min-height: 56px;
-      line-height: 1.5;
-    }
-
-    .status.loading {
-      color: var(--accent-dark);
-      border-color: rgba(13, 122, 111, 0.16);
-    }
-
-    .status.warning {
-      background: var(--warning-bg);
-      border-color: var(--warning-border);
-      color: #6f4b00;
-    }
-
-    .response {
-      margin-top: 18px;
-      padding: 22px;
-      border-radius: 18px;
-      background: rgba(255, 255, 255, 0.78);
-      border: 1px solid rgba(22, 50, 56, 0.08);
-      min-height: 160px;
-      line-height: 1.7;
-    }
-
-    .response:empty::before {
-      content: "Ask about Python concepts, syntax, internals, async behavior, memory usage, or standard-library docs.";
-      color: var(--muted);
-    }
-
-    pre {
-      overflow-x: auto;
-      padding: 14px;
-      border-radius: 14px;
-      background: #f3f7f8;
-    }
-
-    code {
-      font-family: "SFMono-Regular", Menlo, Consolas, monospace;
-    }
-
-    @media (max-width: 640px) {
-      .hero,
-      .workspace {
-        padding-left: 20px;
-        padding-right: 20px;
-      }
-
-      .composer {
-        grid-template-columns: 1fr;
-      }
-
-      button {
-        width: 100%;
-      }
-    }
-  </style>
+  }
+</style>
 </head>
 <body>
 <div class="shell">
-  <section class="hero">
-    <p class="eyebrow">Python Documentation Assistant</p>
-    <h1>RAG Bot for Python questions, examples, and fast doc-grounded answers.</h1>
-    <p class="subtitle">
-      Ask about Python 3 concepts, language features, async behavior, generators, memory usage, and standard-library details.
-      The bot searches relevant documentation context first, then responds with an explanation and code-friendly formatting.
-    </p>
-    <ul class="feature-list">
-      <li>Doc-grounded answers focused on Python concepts and usage.</li>
-      <li>Helpful for interview prep, debugging, syntax lookup, and concept refreshers.</li>
-      <li>Markdown output with readable examples and explanations.</li>
-    </ul>
-  </section>
+  <div class="header">
+    <h1><span class="brand-mark">&gt;&gt;&gt;</span> <span class="brand-text">RAG Bot for Python</span><span class="cursor"></span></h1>
+    <p class="quote">"Simple is better than complex." — Zen of Python</p>
+  </div>
 
   <section class="workspace">
     <div class="composer">
-      <input id="query" type="text" placeholder="Ask about Python lists, async/await, generators, GC, and more" />
-      <button id="submit" onclick="ask()">Ask Bot</button>
+      <input id="query" type="text" placeholder="Ask a Python question..." />
+      <button id="submit" onclick="ask()">Ask</button>
     </div>
 
-    <div id="status" class="status">
-      Enter a Python question to get a retrieval-backed answer from the bot.
-    </div>
+    <div id="status" class="status">Doc-grounded answers about Python 3.14.</div>
 
     <div id="response" class="response"></div>
   </section>
 </div>
 
 <script>
-const API_URL = "https://rag-bot-pinecone-production.onrender.com/query";
-const RETRY_DELAYS = [3000, 8000, 15000, 30000];
+const API_URL = "https://ragbot-521740466585.us-central1.run.app/query";
+const RETRY_DELAYS = [3000, 8000, 15000];
 const REQUEST_TIMEOUT_MS = 20000;
 
 let loading = false;
-let statusMessage = "Enter a Python question to get a retrieval-backed answer from the bot.";
+let statusMessage = "Doc-grounded answers about Python 3.14.";
 let result = "";
 let statusTone = "normal";
 
@@ -298,11 +384,9 @@ async function fetchWithRetry(url, options, statusEl, responseEl) {
 
     for (let attempt = 0; attempt <= RETRY_DELAYS.length; attempt++) {
         if (attempt === 0) {
-            statusMessage = "Starting request...";
-        } else if (attempt === 1) {
-            statusMessage = "Server is waking up (this may take up to 60 seconds)...";
+            statusMessage = "Searching the docs...";
         } else {
-            statusMessage = "Still waking up... retrying";
+            statusMessage = "Still working, retrying...";
         }
 
         statusTone = "loading";
@@ -339,7 +423,7 @@ async function ask() {
 
     if (!query) {
         loading = false;
-        statusMessage = "Add a Python question first so the bot knows what to retrieve.";
+        statusMessage = "Enter a question first.";
         result = "";
         statusTone = "warning";
         renderUI(statusEl, responseEl);
@@ -347,7 +431,7 @@ async function ask() {
     }
 
     loading = true;
-    statusMessage = "Starting request...";
+    statusMessage = "Searching the docs...";
     result = "";
     statusTone = "loading";
     buttonEl.disabled = true;
@@ -368,14 +452,21 @@ async function ask() {
         const data = await res.json();
 
         loading = false;
-        statusMessage = "Answer ready. Ask a follow-up to explore another Python concept or compare related features.";
+        statusMessage = "Answer ready.";
         result = marked.parse(data.answer);
+        if (Array.isArray(data.sources) && data.sources.length > 0) {
+            const escapeHtml = (value) => String(value).replace(/[&<>"']/g, (char) => ({
+                "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;"
+            }[char]));
+            const items = data.sources.map(source => `<li>${escapeHtml(source)}</li>`).join("");
+            result += `<div class="sources"><strong>Sources</strong><ul>${items}</ul></div>`;
+        }
         statusTone = "normal";
         renderUI(statusEl, responseEl);
     } catch (_err) {
         loading = false;
-        statusMessage = "Server is taking too long. Please try again.";
-        result = "<p>The bot did not respond within the wake-up window. Please try your question again in a moment.</p>";
+        statusMessage = "The request timed out. Please try again.";
+        result = "<p>The bot did not respond in time. Please try your question again in a moment.</p>";
         statusTone = "warning";
         renderUI(statusEl, responseEl);
     } finally {

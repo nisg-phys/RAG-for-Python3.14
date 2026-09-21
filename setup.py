@@ -26,5 +26,7 @@ install_requires=[
     "langchain-openai==1.1.11",
     "langchain-pinecone==0.2.13",
     "langchain-text-splitters==1.1.1",
+    "python-json-logger==2.0.7",
+    "opik==2.2.60",
 ],
 )

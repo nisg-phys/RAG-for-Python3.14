@@ -1,7 +1,22 @@
-[
-  "What is a Python list?",
-  "difference between list and tuple",
-  "how does garbage collection work in python",
-  "what is a generator in python",
-  "explain async await in python"
+cr[
+  {
+    "query": "What is a Python list?",
+    "expected_keywords": ["list", "ordered", "mutable"]
+  },
+  {
+    "query": "difference between list and tuple",
+    "expected_keywords": ["list", "tuple", "mutable", "immutable"]
+  },
+  {
+    "query": "how does garbage collection work in python",
+    "expected_keywords": ["garbage", "collection", "reference", "cycles"]
+  },
+  {
+    "query": "what is a generator in python",
+    "expected_keywords": ["generator", "yield", "iterator"]
+  },
+  {
+    "query": "explain async await in python",
+    "expected_keywords": ["async", "await", "coroutine", "event loop"]
+  }
 ]

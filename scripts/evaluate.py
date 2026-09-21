@@ -1,4 +1,5 @@
 import json
+import importlib.util
 from pathlib import Path
 import sys
 
@@ -6,16 +7,17 @@ ROOT_DIR = Path(__file__).resolve().parent.parent
 if str(ROOT_DIR) not in sys.path:
     sys.path.insert(0, str(ROOT_DIR))
 
-from langchain_groq import ChatGroq
-from pydantic import SecretStr
-
+from ragbot.evaluation.metrics import compute_query_metrics, normalize_eval_specs, summarize_metrics
 from ragbot.config.settings import settings
+from ragbot.observability.telemetry import record_event
 from ragbot.pipeline.rag_pipeline import RAGPipeline
 from ragbot.utils.logger import get_logger
 
 
 logger = get_logger("evaluation")
 
+EVAL_DATA_PATH = Path("evaluation/eval_data.py")
+LEGACY_EVAL_DATA_PATH = Path("scripts/eval_data.py")
 QUERIES_PATH = Path("evaluation/queries.json")
 RESULTS_PATH = Path("evaluation/results.json")
 RESULTS_NO_REWRITE_PATH = Path("evaluation/results_no_rewrite.json")
@@ -27,74 +29,26 @@ USE_QUERY_REWRITING = False
 class EvaluationRunner:
     def __init__(self):
         self.pipeline = RAGPipeline()
-        self.judge_llm = ChatGroq(
-            api_key=SecretStr(settings.groq_api_key),
-            model=settings.llm_model,
-        )
 
-    def _ask_judge(self, prompt: str) -> str:
-        response = self.judge_llm.invoke(prompt)
-        return str(response.content).strip()
+    def _load_eval_data_module(self, path: Path):
+        spec = importlib.util.spec_from_file_location("ragbot_eval_data", path)
+        if spec is None or spec.loader is None:
+            raise RuntimeError(f"Could not load evaluation dataset module from {path}")
 
-    def judge_relevance(self, query, chunk_text):
-        prompt = f"""
-You are evaluating retrieval relevance for a RAG system.
-
-Query:
-{query}
-
-Chunk:
-{chunk_text}
-
-Is this chunk relevant to answering the query?
-Answer with exactly one word: YES or NO
-""".strip()
-        verdict = self._ask_judge(prompt).upper()
-        return verdict.startswith("YES")
-
-    def judge_coverage(self, query, chunk_texts):
-        context = "\n\n".join(chunk_texts)
-        prompt = f"""
-You are evaluating context sufficiency for a RAG system.
-
-Query:
-{query}
-
-Context:
-{context}
-
-Is the context sufficient to answer the query?
-Answer with exactly one word: FULL, PARTIAL, or NONE
-""".strip()
-        verdict = self._ask_judge(prompt).upper()
-        if verdict.startswith("FULL"):
-            return "FULL"
-        if verdict.startswith("PARTIAL"):
-            return "PARTIAL"
-        return "NONE"
-
-    def judge_groundedness(self, query, answer, context):
-        prompt = f"""
-You are evaluating answer groundedness for a RAG system.
-
-Query:
-{query}
-
-Answer:
-{answer}
-
-Context:
-{context}
-
-Is the answer fully supported by the context?
-Answer with exactly one word: YES or NO
-""".strip()
-        verdict = self._ask_judge(prompt).upper()
-        return verdict.startswith("YES")
+        module = importlib.util.module_from_spec(spec)
+        spec.loader.exec_module(module)
+        return module
 
     def load_queries(self):
+        for candidate in (EVAL_DATA_PATH, LEGACY_EVAL_DATA_PATH):
+            if candidate.exists():
+                logger.info("Loading evaluation dataset from %s", candidate)
+                module = self._load_eval_data_module(candidate)
+                return normalize_eval_specs(getattr(module, "eval_dataset", []))
+
+        logger.info("Loading evaluation dataset from %s", QUERIES_PATH)
         with open(QUERIES_PATH, "r", encoding="utf-8") as f:
-            return json.load(f)
+            return normalize_eval_specs(json.load(f))
 
     def save_results(self, results, output_path):
         output_path.parent.mkdir(parents=True, exist_ok=True)
@@ -131,63 +85,49 @@ Answer with exactly one word: YES or NO
         queries = self.load_queries()
         results = []
 
-        for query in queries:
+        for query_spec in queries:
+            query = query_spec["query"]
+            expected_keywords = query_spec.get("expected_keywords", [])
+            ground_truth = query_spec.get("ground_truth")
             logger.info(f"Evaluating query: {query}")
             output = self.pipeline.run(query)
 
             answer, retrieved_chunks = self._normalize_output(query, output)
             chunk_texts = self._extract_chunk_texts(retrieved_chunks)
-
-            relevant_count = 0
-            for chunk_text in chunk_texts:
-                if self.judge_relevance(query, chunk_text):
-                    relevant_count += 1
-
-            total_chunks = len(chunk_texts)
-            precision_at_k = relevant_count / total_chunks if total_chunks else 0.0
-            coverage = self.judge_coverage(query, chunk_texts)
-            grounded = self.judge_groundedness(query, answer, "\n\n".join(chunk_texts))
-
             results.append(
-                {
-                    "query": query,
-                    "precision_at_k": precision_at_k,
-                    "coverage": coverage,
-                    "grounded": grounded,
-                    "groundedness": grounded,
-                    "answer": answer,
-                }
+                compute_query_metrics(
+                    query=query,
+                    answer=answer,
+                    chunk_texts=chunk_texts,
+                    expected_keywords=expected_keywords,
+                    ground_truth=ground_truth,
+                    pipeline_metrics=output.get("metrics", {}) if isinstance(output, dict) else {},
+                )
             )
 
-        self.save_results(results, output_path)
+        summary = summarize_metrics(results)
+        payload = {
+            "use_query_rewriting": use_query_rewriting,
+            "summary": summary.model_dump(),
+            "queries": results,
+        }
+        self.save_results(payload, output_path)
+        record_event("evaluation", payload["summary"])
         logger.info(f"Saved evaluation results to {output_path}")
-        return results
+        return payload
 
     def save_comparison(self, baseline_results, rewritten_results):
-        baseline_by_query = {result["query"]: result for result in baseline_results}
-        rewritten_by_query = {result["query"]: result for result in rewritten_results}
-
-        comparison = []
-        for query in self.load_queries():
-            before = baseline_by_query.get(query, {})
-            after = rewritten_by_query.get(query, {})
-            comparison.append(
-                {
-                    "query": query,
-                    "precision_at_k": {
-                        "before": before.get("precision_at_k"),
-                        "after": after.get("precision_at_k"),
-                    },
-                    "coverage": {
-                        "before": before.get("coverage"),
-                        "after": after.get("coverage"),
-                    },
-                    "groundedness": {
-                        "before": before.get("groundedness", before.get("grounded")),
-                        "after": after.get("groundedness", after.get("grounded")),
-                    },
-                }
-            )
+        before = baseline_results["summary"]
+        after = rewritten_results["summary"]
+        comparison = {
+            "before": before,
+            "after": after,
+            "delta": {
+                metric: round(after[metric] - before[metric], 4)
+                for metric in before
+                if metric != "queries_evaluated"
+            },
+        }
 
         self.save_results(comparison, COMPARISON_PATH)
         logger.info(f"Saved comparison results to {COMPARISON_PATH}")
@@ -199,11 +139,20 @@ def main():
         use_query_rewriting=False,
         output_path=RESULTS_NO_REWRITE_PATH,
     )
+
+    if not settings.use_query_rewriting:
+        runner.save_results(results_no_rewrite, RESULTS_PATH)
+        logger.info(
+            "Query rewriting is disabled in settings; skipped rewritten evaluation outputs."
+        )
+        return
+
     results_with_rewrite = runner.evaluate(
         use_query_rewriting=True,
         output_path=RESULTS_WITH_REWRITE_PATH,
     )
     runner.save_comparison(results_no_rewrite, results_with_rewrite)
+    runner.save_results(results_no_rewrite, RESULTS_PATH)
 
 
 if __name__ == "__main__":

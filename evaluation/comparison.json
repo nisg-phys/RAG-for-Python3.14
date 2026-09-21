@@ -1,77 +1,34 @@
-[
-  {
-    "query": "What is a Python list?",
-    "precision_at_k": {
-      "before": 0.2,
-      "after": 0.2
-    },
-    "coverage": {
-      "before": "FULL",
-      "after": "FULL"
-    },
-    "groundedness": {
-      "before": true,
-      "after": true
-    }
+{
+  "before": {
+    "queries_evaluated": 14,
+    "retrieval_hit_rate_at_k": 1.0,
+    "mean_reciprocal_rank_at_k": 0.8929,
+    "mean_context_precision_at_k": 0.5714,
+    "mean_answer_keyword_recall": 0.3661,
+    "answer_fallback_rate": 0.0,
+    "avg_total_latency_ms": 9759.9331,
+    "avg_retrieval_latency_ms": 1460.9271,
+    "avg_generation_latency_ms": 8299.0059
   },
-  {
-    "query": "difference between list and tuple",
-    "precision_at_k": {
-      "before": 0.2,
-      "after": 0.2
-    },
-    "coverage": {
-      "before": "FULL",
-      "after": "PARTIAL"
-    },
-    "groundedness": {
-      "before": true,
-      "after": true
-    }
+  "after": {
+    "queries_evaluated": 14,
+    "retrieval_hit_rate_at_k": 1.0,
+    "mean_reciprocal_rank_at_k": 0.8929,
+    "mean_context_precision_at_k": 0.5714,
+    "mean_answer_keyword_recall": 0.3125,
+    "answer_fallback_rate": 0.0714,
+    "avg_total_latency_ms": 17042.3807,
+    "avg_retrieval_latency_ms": 4800.189,
+    "avg_generation_latency_ms": 12242.1917
   },
-  {
-    "query": "how does garbage collection work in python",
-    "precision_at_k": {
-      "before": 0.8,
-      "after": 0.6
-    },
-    "coverage": {
-      "before": "FULL",
-      "after": "PARTIAL"
-    },
-    "groundedness": {
-      "before": true,
-      "after": true
-    }
-  },
-  {
-    "query": "what is a generator in python",
-    "precision_at_k": {
-      "before": 0.6,
-      "after": 0.6
-    },
-    "coverage": {
-      "before": "FULL",
-      "after": "FULL"
-    },
-    "groundedness": {
-      "before": true,
-      "after": true
-    }
-  },
-  {
-    "query": "explain async await in python",
-    "precision_at_k": {
-      "before": 0.8,
-      "after": 1.0
-    },
-    "coverage": {
-      "before": "FULL",
-      "after": "PARTIAL"
-    },
-    "groundedness": {
-      "before": true,
-      "after": true
-    }
+  "delta": {
+    "retrieval_hit_rate_at_k": 0.0,
+    "mean_reciprocal_rank_at_k": 0.0,
+    "mean_context_precision_at_k": 0.0,
+    "mean_answer_keyword_recall": -0.0536,
+    "answer_fallback_rate": 0.0714,
+    "avg_total_latency_ms": 7282.4476,
+    "avg_retrieval_latency_ms": 3339.2619,
+    "avg_generation_latency_ms": 3943.1858
   }
-]
+}
