@@ -1,5 +1,6 @@
 {
   "hosting": {
+    "site": "ragbot-python",
     "public": "frontend",
     "ignore": [
       "firebase.json",
