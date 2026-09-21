@@ -267,9 +267,15 @@ curl -X POST "http://127.0.0.1:8000/query" \
 
 ```json
 {
-  "answer": "## Explanation\n...\n## Code\n...\n## Notes\n..."
+  "answer": "## Answer\n...\n## Evidence\n...\n## Code Example(s)\n...\n## Notes\n...",
+  "sources": [
+    {"source": "data/library/asyncio-task.txt", "url": "https://docs.python.org/3/library/asyncio-task.html"}
+  ],
+  "metrics": { "...": "retrieval/generation latency, scores, etc. - see QueryTelemetry" }
 }
 ```
+
+`sources` lists the distinct documents the answer was grounded in. Since the ingested corpus mirrors docs.python.org's own directory layout, each source maps mechanically back to its canonical page (`ragbot.utils.citations.source_to_docs_url`); `url` is `null` for any source that doesn't fit that shape.
 
 ## Frontend
 

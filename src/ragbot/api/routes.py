@@ -21,9 +21,17 @@ class QueryRequest(BaseModel):
     query: Annotated[str,Field(..., description="Ask anything about python 3.14 documents", examples=["How is the error handled in python?"])]
 
 
+class SourceCitation(BaseModel):
+    source: str
+    url: str | None = Field(
+        default=None,
+        description="Canonical docs.python.org page this chunk came from, when the source maps to one.",
+    )
+
+
 class QueryResponse(BaseModel):
     answer: str
-    sources: list[str]
+    sources: list[SourceCitation]
     metrics: QueryTelemetry
 
 

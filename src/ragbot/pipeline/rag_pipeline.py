@@ -18,6 +18,7 @@ from ragbot.observability.telemetry import record_event
 from ragbot.prompts.rag_prompt import rag_prompt
 from ragbot.utils.logger import get_logger
 from ragbot.utils.formatter import format_to_markdown
+from ragbot.utils.citations import source_to_docs_url
 
 
 logger = get_logger("rag_pipeline")
@@ -212,7 +213,10 @@ class RAGPipeline:
         # Combine context
         sources = [result["doc"].metadata.get("source", "unknown") for result in results]
         logger.info(f"Retrieved sources: {sources}")
-        unique_sources = list(dict.fromkeys(sources))
+        citations = [
+            {"source": source, "url": source_to_docs_url(source)}
+            for source in dict.fromkeys(sources)
+        ]
 
         context = "\n\n".join(
             [
@@ -256,7 +260,7 @@ class RAGPipeline:
         return {
             "answer": clean_response,
             "retrieved_chunks": results,
-            "sources": unique_sources,
+            "sources": citations,
             "metrics": metrics.model_dump(),
         }
         

@@ -29,7 +29,10 @@ class _FakeRAGPipeline:
         return {
             "answer": "## Answer\nLogging uses the logging module.",
             "retrieved_chunks": [],
-            "sources": ["data/logging.rst", "data/typing.rst"],
+            "sources": [
+                {"source": "data/library/logging.txt", "url": "https://docs.python.org/3/library/logging.html"},
+                {"source": "data/library/typing.txt", "url": "https://docs.python.org/3/library/typing.html"},
+            ],
             "metrics": {
                 "trace_id": "abc123",
                 "query": query,
@@ -78,7 +81,13 @@ class QueryRouteTests(unittest.TestCase):
         self.assertEqual(200, response.status_code)
         body = response.json()
         self.assertEqual("## Answer\nLogging uses the logging module.", body["answer"])
-        self.assertEqual(["data/logging.rst", "data/typing.rst"], body["sources"])
+        self.assertEqual(
+            [
+                {"source": "data/library/logging.txt", "url": "https://docs.python.org/3/library/logging.html"},
+                {"source": "data/library/typing.txt", "url": "https://docs.python.org/3/library/typing.html"},
+            ],
+            body["sources"],
+        )
         self.assertIn("metrics", body)
         self.assertEqual("abc123", body["metrics"]["trace_id"])
 

@@ -63,11 +63,11 @@ class RunSourcesAndFormattingTests(unittest.TestCase):
 
         self.pipeline.prompt = rag_prompt
 
-    def test_run_returns_deduped_sources_and_formatted_answer(self):
+    def test_run_returns_deduped_citations_and_formatted_answer(self):
         retrieved = [
-            _result("c1", "data/logging.rst", page_content="chunk one"),
-            _result("c2", "data/logging.rst", page_content="chunk two"),
-            _result("c3", "data/typing.rst", page_content="chunk three"),
+            _result("c1", "data/library/logging.txt", page_content="chunk one"),
+            _result("c2", "data/library/logging.txt", page_content="chunk two"),
+            _result("c3", "data/library/typing.txt", page_content="chunk three"),
         ]
         self.pipeline.retriever = SimpleNamespace(retrieve=lambda query, k: retrieved)
         self.pipeline.llm = SimpleNamespace(
@@ -81,7 +81,13 @@ class RunSourcesAndFormattingTests(unittest.TestCase):
         ):
             result = self.pipeline.run("How is logging done in python?")
 
-        self.assertEqual(["data/logging.rst", "data/typing.rst"], result["sources"])
+        self.assertEqual(
+            [
+                {"source": "data/library/logging.txt", "url": "https://docs.python.org/3/library/logging.html"},
+                {"source": "data/library/typing.txt", "url": "https://docs.python.org/3/library/typing.html"},
+            ],
+            result["sources"],
+        )
         self.assertIn("## Answer", result["answer"])
 
     def test_run_raises_when_no_documents_ingested(self):

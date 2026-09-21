@@ -284,6 +284,15 @@
     border-radius: 6px;
   }
 
+  .response .sources li a {
+    color: inherit;
+    text-decoration: none;
+  }
+
+  .response .sources li a:hover {
+    text-decoration: underline;
+  }
+
   @keyframes fadeIn {
     from { opacity: 0; transform: translateY(4px); }
     to { opacity: 1; transform: translateY(0); }
@@ -458,7 +467,13 @@ async function ask() {
             const escapeHtml = (value) => String(value).replace(/[&<>"']/g, (char) => ({
                 "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;"
             }[char]));
-            const items = data.sources.map(source => `<li>${escapeHtml(source)}</li>`).join("");
+            const label = (source) => source.replace(/^data\//, "").replace(/\.txt$/, "");
+            const items = data.sources.map(({ source, url }) => {
+                const text = escapeHtml(label(source));
+                return url
+                    ? `<li><a href="${escapeHtml(url)}" target="_blank" rel="noopener noreferrer">${text}</a></li>`
+                    : `<li>${text}</li>`;
+            }).join("");
             result += `<div class="sources"><strong>Sources</strong><ul>${items}</ul></div>`;
         }
         statusTone = "normal";
