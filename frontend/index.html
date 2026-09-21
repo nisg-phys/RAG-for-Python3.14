@@ -224,6 +224,66 @@
     border-radius: 6px;
   }
 
+  .response h2 {
+    margin: 20px 0 8px;
+    font-size: 0.82rem;
+    font-weight: 700;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    color: var(--blue-dark);
+  }
+
+  .response h2:first-child {
+    margin-top: 0;
+  }
+
+  .response ul, .response ol {
+    margin: 6px 0;
+    padding-left: 22px;
+  }
+
+  .response li {
+    margin: 4px 0;
+  }
+
+  .response li::marker {
+    color: var(--blue);
+  }
+
+  .response .sources {
+    margin-top: 20px;
+    padding-top: 14px;
+    border-top: 1px solid var(--panel-border);
+  }
+
+  .response .sources strong {
+    display: block;
+    margin-bottom: 6px;
+    font-size: 0.78rem;
+    font-weight: 700;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    color: var(--muted);
+  }
+
+  .response .sources ul {
+    margin: 0;
+    padding-left: 0;
+    list-style: none;
+  }
+
+  .response .sources li {
+    margin: 4px 0;
+    padding: 4px 10px;
+    display: inline-block;
+    margin-right: 8px;
+    font-size: 0.82rem;
+    font-family: "SFMono-Regular", Menlo, Consolas, monospace;
+    color: var(--blue-dark);
+    background: rgba(48, 105, 152, 0.08);
+    border-radius: 6px;
+  }
+
   @keyframes fadeIn {
     from { opacity: 0; transform: translateY(4px); }
     to { opacity: 1; transform: translateY(0); }
@@ -394,6 +454,13 @@ async function ask() {
         loading = false;
         statusMessage = "Answer ready.";
         result = marked.parse(data.answer);
+        if (Array.isArray(data.sources) && data.sources.length > 0) {
+            const escapeHtml = (value) => String(value).replace(/[&<>"']/g, (char) => ({
+                "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;"
+            }[char]));
+            const items = data.sources.map(source => `<li>${escapeHtml(source)}</li>`).join("");
+            result += `<div class="sources"><strong>Sources</strong><ul>${items}</ul></div>`;
+        }
         statusTone = "normal";
         renderUI(statusEl, responseEl);
     } catch (_err) {

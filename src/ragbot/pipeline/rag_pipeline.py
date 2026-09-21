@@ -212,6 +212,7 @@ class RAGPipeline:
         # Combine context
         sources = [result["doc"].metadata.get("source", "unknown") for result in results]
         logger.info(f"Retrieved sources: {sources}")
+        unique_sources = list(dict.fromkeys(sources))
 
         context = "\n\n".join(
             [
@@ -255,6 +256,7 @@ class RAGPipeline:
         return {
             "answer": clean_response,
             "retrieved_chunks": results,
+            "sources": unique_sources,
             "metrics": metrics.model_dump(),
         }
         

@@ -23,6 +23,7 @@ class QueryRequest(BaseModel):
 
 class QueryResponse(BaseModel):
     answer: str
+    sources: list[str]
     metrics: QueryTelemetry
 
 
@@ -50,7 +51,7 @@ def query_rag(request: QueryRequest):
     logger.info(f"API query received: {request.query}")
     result = rag.run(request.query)
     logger.info("Response returned to client")
-    return QueryResponse(answer=result["answer"], metrics=result["metrics"])
+    return QueryResponse(answer=result["answer"], sources=result["sources"], metrics=result["metrics"])
 @router.get("/health")
 def health():
     logger.info("Health check requested")
