@@ -584,6 +584,10 @@ If you want to adapt it to another domain, the main places to update are:
 - add structured observability for retrieval metrics
 - use Redis to cache the built BM25 index (not just raw chunks) to reduce cold-start latency
 - improve answer formatting — drop the "Evidence" section from generated answers
+- set Cloud Run `min-instances >= 1` to eliminate scale-to-zero cold starts
+- switch `/query` to `async def` with LangChain's `.ainvoke()` so one instance isn't capped at ~40 concurrently-executing requests by FastAPI's sync threadpool
+- add retry/backoff around Groq/OpenAI/Pinecone calls so provider rate-limit errors (429s) degrade gracefully instead of failing the request
+- check actual Groq/OpenAI/Pinecone account rate limits (RPM/TPM) - likely the real ceiling on concurrent throughput, ahead of any Cloud Run scaling setting
 
 ## License
 
